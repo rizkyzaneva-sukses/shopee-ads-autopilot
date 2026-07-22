@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Toko{% endblock %}
+{% block content %}
+<h1>Toko</h1>
+<p class="sub">Semua cabang/toko dalam satu dashboard — atur plafon & izin autopilot per toko.</p>
+
+<div class="kartu">
+  <div class="toolbar" style="margin:0"><b>Toko terdaftar: {{ toko|length }}</b>
+    <span style="flex:1"></span>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">↻ Sinkron semua toko</button></form>
+  </div>
+  <table>
+    <tr><th>Nama</th><th>Shop ID</th><th class="num">Kampanye</th><th class="num">Budget aktif/hari</th>
+        <th class="num">Spend 7h</th><th class="num">GMV 7h</th><th class="num">ROAS 7h</th>
+        <th>Autopilot</th><th>Sinkron terakhir</th><th>Plafon & izin</th></tr>
+    {% for t in toko %}
+    {% set roas = (t['gmv_7d'] / t['spend_7d']) if t['spend_7d'] else 0 %}
+    <tr>
+      <td><b>{{ t['nama'] }}</b></td>
+      <td style="font-size:12px;color:#6b7280">{{ t['shop_id_ext'] }}</td>
+      <td class="num">{{ t['jml_kampanye'] }}</td>
+      <td class="num">{{ t['budget_aktif']|idr }}</td>
+      <td class="num">{{ t['spend_7d']|idr }}</td>
+      <td class="num">{{ t['gmv_7d']|idr }}</td>
+      <td class="num" style="font-weight:700;color:{{ '#16a34a' if roas>=2 else '#d97706' if roas>=1.5 else '#dc2626' }}">{{ '%.2f'|format(roas) }}×</td>
+      <td><span class="badge {{ 'b-hijau' if t['autopilot_on'] else 'b-abu' }}">{{ 'ON' if t['autopilot_on'] else 'OFF' }}</span></td>
+      <td style="font-size:12px;white-space:normal;max-width:200px">{{ t['last_sync_at'] or '—' }}<br>
+        <span style="color:#9ca3af">{{ sync_note[t['id']] if t['id'] in sync_note else '' }}</span></td>
+      <td>
+        <form method="post" action="/toko/{{ t['id'] }}/atur" class="inline" style="gap:6px">
+          <input name="plafon_harian" type="number" min="0" step="10000" value="{{ t['plafon_harian']|int }}"
+                 title="Plafon total budget iklan per hari untuk toko ini (0 = tanpa batas)" style="width:110px">
+          <label style="font-size:12px"><input type="checkbox" name="autopilot_on" value="1" {{ 'checked' if t['autopilot_on'] }}> autopilot</label>
+          <button type="submit" class="btn-min">💾</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" style="padding:28px;text-align:center;color:#6b7280">Belum ada toko — tambah dengan form di bawah.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="grid g2">
+  <div class="kartu">
+    <b>＋ Tambah toko manual</b><br><br>
+    <form method="post" action="/toko/tambah" class="inline">
+      <input name="nama" placeholder="Nama toko (mis. Cabang Bandung)" required style="width:230px">
+      <input name="shop_id_ext" placeholder="Shop ID Shopee (opsional utk demo)" style="width:210px">
+      <button type="submit" class="btn-min btn-hijau">Tambah</button>
+    </form>
+    <p style="color:#6b7280;font-size:13px">Untuk mode <b>DEMO</b> Anda boleh mengosongkan Shop ID — sistem membuat id internal.
+    Untuk mode <b>LIVE</b>, toko harus diotorisasi lewat OAuth (panduan di kanan).</p>
+  </div>
+  <div class="kartu">
+    <b>🔐 Menghubungkan toko nyata (OAuth resmi Shopee)</b>
+    <ol style="margin-bottom:0;color:#374151;line-height:1.9">
+      <li>Isi <code>SHOPEE_PARTNER_ID</code> &amp; <code>SHOPEE_PARTNER_KEY</code> di file <code>.env</code> (lihat <code>.env.example</code>), restart server.</li>
+      <li>Jalankan <code>python scripts/authorize_shop.py --nama "Cabang Bandung"</code> → buka URL yang tercetak, login sebagai <b>pemilik toko</b>, klik Setujui.</li>
+      <li>Salin URL hasil redirect → <code>python scripts/authorize_shop.py --nama "Cabang Bandung" --pasted-url "URL_HASIL"</code>.</li>
+      <li>Ulangi untuk setiap cabang (&gt;5 toko didukung). Token di-refresh otomatis (berlaku ±4 jam).</li>
+      <li>Scope <b>Ads (modul 117)</b> perlu diaktifkan oleh Shopee Partner Support untuk akun developer Anda.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="note">🛡️ <b>Plafon harian</b> adalah rem terakhir: total budget kampanye ongoing sebuah toko tidak akan pernah dinaikkan autopilot melebihi plafon ini — walau aturan menyuruh naik. Cocok untuk mengontrol total bon iklan per cabang.</div>
+{% endblock %}

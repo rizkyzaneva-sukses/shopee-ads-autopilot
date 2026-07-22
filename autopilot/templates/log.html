@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Log Keputusan{% endblock %}
+{% block content %}
+<h1>Log Keputusan</h1>
+<p class="sub">Jejak audit semua evaluasi & aksi autopilot — setiap keputusan bisa dilacak.</p>
+
+<div class="kartu">
+  <div class="toolbar" style="margin:0">
+    <form method="get" action="/log" class="inline">
+      <select name="status">
+        <option value="">Semua status</option>
+        {% for st in ['pending','executed','dryrun','throttled','blocked','rejected'] %}
+        <option value="{{ st }}" {{ 'selected' if status==st }}>{{ st }}</option>{% endfor %}
+      </select>
+      <select name="store">
+        <option value="0">Semua toko</option>
+        {% for s in stores %}<option value="{{ s['id'] }}" {{ 'selected' if store==s['id'] }}>{{ s['nama'] }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn-min">Filter</button>
+    </form>
+    <span style="flex:1"></span>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Siklus Sekarang</button></form>
+  </div>
+  <table>
+    <tr><th>Waktu</th><th>Toko</th><th>Kampanye</th><th>Aturan</th><th>Kondisi / Metrik</th><th>Aksi</th><th>Mode</th><th>Status</th><th>Konfirmasi</th></tr>
+    {% for d in decisions %}
+    <tr>
+      <td style="white-space:normal">{{ d.created_at }}</td>
+      <td>{{ d.nama_toko or '—' }}</td>
+      <td style="white-space:normal;max-width:170px">{{ (d.nama_kampanye or '—')[:32] }}</td>
+      <td style="white-space:normal;max-width:140px">{{ d.nama_rule or '—' }}</td>
+      <td style="white-space:normal;max-width:250px;color:#374151;font-size:12px">{{ d.kondisi[:90] }}</td>
+      <td style="white-space:normal;max-width:170px">{{ d.aksi }} {{ d.nilai_aksi }}{% if d.detail %}<br><span style="color:#6b7280;font-size:11px">{{ d.detail[:80] }}</span>{% endif %}</td>
+      <td><span class="badge {{ 'b-merah' if d.mode=='live' else 'b-biru' }}">{{ d.mode }}</span></td>
+      <td><span class="badge {{ 'b-hijau' if d.status=='executed' else 'b-kuning' if d.status=='pending' else 'b-abu' if d.status in ('dryrun','rejected','skipped') else 'b-merah' }}">{{ d.status }}</span></td>
+      <td>{% if d.status=='pending' %}
+        <form method="post" action="/log/{{ d.id }}/setujui" class="inline">
+          <button type="submit" class="btn-min btn-hijau">✔ setujui</button></form>
+        <form method="post" action="/log/{{ d.id }}/tolak" class="inline">
+          <button type="submit" class="btn-min btn-merah">✖</button></form>
+      {% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="9" style="padding:28px;text-align:center;color:#6b7280">
+      Belum ada log. Jalankan siklus evaluasi (tombol kanan atas).
+    </td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Autopilot{% endblock %} · Ads Autopilot</title>
+<style>
+  :root{--amber:#d97706;--hijau:#16a34a;--merah:#dc2626;--biru:#2563eb;--teks:#111827;--abu:#6b7280;--bg:#f3f4f6;--kartu:#fff;--garis:#e5e7eb}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--teks);font-size:14px}
+  nav{background:#111827;padding:0 20px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+  nav .brand{color:#fff;font-weight:700;padding:14px 16px 14px 0;font-size:16px}
+  nav .brand span{color:#f59e0b}
+  nav a{color:#d1d5db;text-decoration:none;padding:14px 12px;display:inline-block}
+  nav a:hover,nav a.aktif{color:#fff;border-bottom:2px solid #f59e0b}
+  main{max-width:1180px;margin:24px auto;padding:0 16px}
+  .flash{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;margin-bottom:16px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--abu);margin:0 0 18px}
+  .kartu{background:var(--kartu);border:1px solid var(--garis);border-radius:10px;padding:16px;margin-bottom:16px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(400px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .g5{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .kpi{background:var(--kartu);border:1px solid var(--garis);border-radius:10px;padding:14px 16px}
+  .kpi .lbl{color:var(--abu);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .val{font-size:21px;font-weight:700;margin-top:4px}
+  .kpi.hijau .val{color:var(--hijau)} .kpi.merah .val{color:var(--merah)} .kpi.amber .val{color:var(--amber)} .kpi.biru .val{color:var(--biru)}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--garis);text-align:left;white-space:nowrap}
+  th{font-size:12px;color:var(--abu);text-transform:uppercase;letter-spacing:.03em;background:#f9fafb}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr:hover td{background:#f9fafb}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+  .b-hijau{background:#dcfce7;color:#166534}.b-abu{background:#e5e7eb;color:#374151}
+  .b-kuning{background:#fef9c3;color:#854d0e}.b-merah{background:#fee2e2;color:#991b1b}
+  .b-biru{background:#dbeafe;color:#1e40af}.b-amber{background:#fef3c7;color:#92400e}
+  .b-ungu{background:#ede9fe;color:#6d28d9}
+  form.inline{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input,select{padding:8px 10px;border:1px solid var(--garis);border-radius:8px;font-size:14px;background:#fff}
+  button,.btn{background:var(--amber);color:#fff;border:0;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;text-decoration:none;display:inline-block}
+  button:hover,.btn:hover{filter:brightness(1.08)}
+  .btn-biru{background:var(--biru)}.btn-hijau{background:var(--hijau)}.btn-merah{background:var(--merah)}.btn-abu{background:#4b5563}
+  .btn-min{padding:4px 10px;font-size:12px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .lbl{font-size:12px;color:var(--abu);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+  .footer{color:var(--abu);font-size:12px;margin:32px 0 8px;text-align:center}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:16px}
+  .killbtn{background:#7f1d1d;color:#fecaca;border:1px solid #ef4444;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;margin-left:auto}
+  .killbtn.on{background:#16a34a;color:#dcfce7;border-color:#16a34a}
+  .modechip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-left:8px}
+  .m-demo{background:#dbeafe;color:#1e40af}.m-live{background:#fee2e2;color:#991b1b}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">Ads<span>Autopilot</span>
+    <span class="modechip {{ 'm-live' if bagan.mode=='live' else 'm-demo' }}">{{ 'LIVE' if bagan.mode=='live' else 'DEMO / DRY-RUN' }}</span>
+  </div>
+  <a href="/" class="{{ 'aktif' if page=='monitoring' }}">Monitoring</a>
+  <a href="/rules" class="{{ 'aktif' if page=='rules' }}">Aturan</a>
+  <a href="/log" class="{{ 'aktif' if page=='log' }}">Log Keputusan{% if bagan.pending %} <span class="badge b-merah">{{ bagan.pending }}</span>{% endif %}</a>
+  <a href="/kampanye" class="{{ 'aktif' if page=='kampanye' }}">Kampanye</a>
+  <a href="/toko" class="{{ 'aktif' if page=='toko' }}">Toko</a>
+  <a href="/settings" class="{{ 'aktif' if page=='settings' }}">Settings</a>
+  <a href="/panduan" class="{{ 'aktif' if page=='panduan' }}">📖 Panduan</a>
+  <form action="/kontrol/kill" method="post" style="margin-left:auto">
+    <button type="submit" class="killbtn {{ 'on' if bagan.kill }}" title="Kill-switch: hentikan SEMUA aksi otomatis">
+      {{ '▶ LANJUTKAN' if bagan.kill else '⛔ KILL-SWITCH' }}
+    </button>
+  </form>
+</nav>
+<main>
+{% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+{% block content %}{% endblock %}
+<div class="footer">Ads Autopilot · aksi tulis hanya via Shopee Ads API resmi · mode dry-run & kill-switch demi keamanan saldo Anda</div>
+</main>
+</body>
+</html>

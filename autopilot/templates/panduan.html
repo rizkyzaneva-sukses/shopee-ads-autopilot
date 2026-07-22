@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+{% block title %}Panduan Pengguna{% endblock %}
+{% block content %}
+<h1>📖 Panduan Pengguna — Shopee Ads Autopilot</h1>
+<p class="sub">Versi 1.0 · Terakhir diperbarui: Juli 2026</p>
+
+<div class="kartu">
+<b>Daftar Isi</b>
+<ol style="line-height:2.2;color:#2563eb">
+<li><a href="#s1">Apa itu Shopee Ads Autopilot?</a></li>
+<li><a href="#s2">Instalasi &amp; Quick Start (Mode DEMO)</a></li>
+<li><a href="#s3">Tur Setiap Halaman Dashboard</a></li>
+<li><a href="#s4">Cara Membuat Aturan Step-by-Step</a></li>
+<li><a href="#s5">Panduan Mengisi Prioritas</a></li>
+<li><a href="#s6">Membaca Log Keputusan</a></li>
+<li><a href="#s7">Setup Telegram &amp; Kirim Pesan Uji</a></li>
+<li><a href="#s8">Menjalankan 24 Jam di PC Windows</a></li>
+<li><a href="#s9">Roadmap dari DEMO ke LIVE</a></li>
+<li><a href="#s10">Jujur soal API</a></li>
+<li><a href="#s11">Troubleshooting &amp; FAQ</a></li>
+<li><a href="#s12">Glosarium Iklan untuk Pemula</a></li>
+</ol>
+</div>
+
+<!-- ===== 1 ===== -->
+<div class="kartu" id="s1">
+<h2>1. Apa itu Shopee Ads Autopilot?</h2>
+<p><b>Shopee Ads Autopilot</b> adalah aplikasi internal untuk mengotomatiskan pengelolaan iklan Shopee di banyak toko/cabang. Aplikasi ini berjalan di PC Windows Anda sendiri — bukan layanan cloud, bukan SaaS berlangganan.</p>
+<p><b>Untuk siapa aplikasi ini?</b></p>
+<ul>
+<li><b>Pemilik toko Shopee multi-cabang</b> yang ingin iklannya dikelola otomatis (naikkan budget kalau untung, turunkan/pause kalau boncos).</li>
+<li><b>Manajer iklan</b> yang perlu melihat performa semua cabang dalam satu dashboard.</li>
+<li><b>Siapa saja</b> yang ingin belajar mengelola iklan Shopee dengan aman — karena mode pertama kali adalah <b>DEMO</b> (simulasi, saldo iklan 100% aman).</li>
+</ul>
+<table>
+<tr><th>Hal</th><th>Keterangan</th></tr>
+<tr><td><b>Mode awal</b></td><td>DEMO — semua aksi hanya simulasi di database lokal, <b>tidak ada panggilan API ke Shopee</b></td></tr>
+<tr><td><b>Database</b></td><td>SQLite lokal (<code>autopilot.db</code>), cukup satu file untuk backup</td></tr>
+<tr><td><b>Port default</b></td><td><code>http://127.0.0.1:8765</code> (buka di browser)</td></tr>
+<tr><td><b>Toko didukung</b></td><td>&gt;5 cabang dalam satu dashboard</td></tr>
+<tr><td><b>Bahasa antarmuka</b></td><td>Bahasa Indonesia</td></tr>
+</table>
+</div>
+
+<!-- ===== 2 ===== -->
+<div class="kartu" id="s2">
+<h2>2. Instalasi &amp; Quick Start (Mode DEMO)</h2>
+<p>Anda hanya butuh <b>Python 3.10+</b> yang terinstall di Windows. Tidak perlu Docker, Node.js, atau tools tambahan.</p>
+
+<h3>Langkah 1 — Install Python</h3>
+<p>Jika belum punya Python, download dari <a href="https://www.python.org/downloads/" target="_blank">python.org</a> dan centang <b>"Add Python to PATH"</b> saat instalasi.</p>
+
+<h3>Langkah 2 — Install dependensi</h3>
+<p>Buka <b>PowerShell</b> atau <b>Command Prompt</b>, lalu jalankan:</p>
+<pre>cd folder-aplikasi
+python -m pip install -r requirements.txt</pre>
+
+<h3>Langkah 3 — Isi data demo</h3>
+<p>Perintah ini membuat 6 toko cabang, 30 kampanye, dan 30 hari data performa simulasi:</p>
+<pre>python scripts\seed_demo.py</pre>
+
+<h3>Langkah 4 — Jalankan server</h3>
+<pre>python run.py</pre>
+
+<h3>Langkah 5 — Buka dashboard</h3>
+<p>Buka browser: <code>http://127.0.0.1:8765</code></p>
+
+<div class="note">
+<b>Untuk menjalankan ulang demo dari nol:</b><br>
+<code>python scripts\seed_demo.py --reset</code>
+</div>
+</div>
+
+<!-- ===== 3 ===== -->
+<div class="kartu" id="s3">
+<h2>3. Tur Setiap Halaman Dashboard</h2>
+<p>Dashboard terdiri dari 6 halaman utama. Akses semua halaman dari <b>menu navigasi</b> di bagian atas.</p>
+
+<h3>3.1 Monitoring</h3>
+<p><b>Fungsi:</b> Halaman utama — ringkasan kesehatan iklan semua toko dalam satu pandangan.</p>
+<table>
+<tr><th>Elemen</th><th>Keterangan</th></tr>
+<tr><td><b>KPI 4 kotak</b></td><td>Spend 7 Hari, GMV 7 Hari, ROAS 7 Hari (hijau jika ≥2, merah jika &lt;2), Jumlah Kampanye Aktif</td></tr>
+<tr><td><b>Tabel Kampanye</b></td><td>Toko, Nama, Tipe (MANUAL/GMS/AUTO), Status, Budget/hari, Spend 7h, GMV 7h, ROAS 7h, ROAS Target</td></tr>
+<tr><td><b>Tren 14 Hari</b></td><td>Grafik SVG garis Spend vs GMV</td></tr>
+<tr><td><b>Keputusan Terakhir</b></td><td>8 entri terakhir dari Log Keputusan</td></tr>
+</table>
+<p><b>Tombol:</b> Filter toko · ▶ Jalankan Siklus Evaluasi Sekarang</p>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Monitoring]</p>
+
+<h3>3.2 Aturan</h3>
+<p><b>Fungsi:</b> Buat, edit, dan kelola aturan otomatis autopilot.</p>
+<table>
+<tr><th>Elemen</th><th>Keterangan</th></tr>
+<tr><td><b>Tabel Aturan</b></td><td>ON/OFF, Nama, Prioritas, Scope, Kondisi, Aksi, Batas Aman, Dry-run</td></tr>
+<tr><td><b>Form Aturan</b></td><td>Di bawah tabel — form tambah baru atau edit</td></tr>
+</table>
+<p><b>Kolom penting:</b></p>
+<ul>
+<li><b>Scope:</b> "Semua kampanye", "Toko #X", "Kampanye #X", atau "Tipe MANUAL/GMS/AUTO"</li>
+<li><b>Kondisi:</b> Metrik + pembanding + ambang + jendela hari. Contoh: <code>roas &lt; 1.0 (7h) DAN spend ≥ 100000 (7h)</code></li>
+<li><b>Aksi:</b> Naikkan/turunkan budget, pause, resume, bid up/down, atau notifikasi</li>
+<li><b>Batas aman:</b> Lantai budget, plafon per kampanye, maks aksi/hari</li>
+<li><b>Dry-run s/d:</b> Aturan baru dry-run sampai tanggal ini</li>
+</ul>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Aturan]</p>
+
+<h3>3.3 Log Keputusan</h3>
+<p><b>Fungsi:</b> Jejak audit semua keputusan autopilot — permanen.</p>
+<table>
+<tr><th>Kolom</th><th>Keterangan</th></tr>
+<tr><td><b>Waktu</b></td><td>Kapan keputusan dibuat</td></tr>
+<tr><td><b>Toko / Kampanye / Aturan</b></td><td>Yang terdampak</td></tr>
+<tr><td><b>Kondisi/Metrik</b></td><td>Ringkasan kondisi + snapshot metrik</td></tr>
+<tr><td><b>Aksi</b></td><td>Aksi yang diambil + nilai</td></tr>
+<tr><td><b>Mode</b></td><td>demo / dryrun / live</td></tr>
+<tr><td><b>Status</b></td><td>executed / dryrun / throttled / blocked / pending / rejected</td></tr>
+<tr><td><b>Konfirmasi</b></td><td>Tombol ✔ setujui / ✖ tolak (untuk pending)</td></tr>
+</table>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Log Keputusan]</p>
+
+<h3>3.4 Kampanye</h3>
+<p><b>Fungsi:</b> Daftar lengkap semua kampanye iklan yang dipantau — semua toko, semua jenis.</p>
+<table>
+<tr><th>Kolom</th><th>Keterangan</th></tr>
+<tr><td><b>Tipe</b></td><td>MANUAL (produk individual), GMS (GMV Max / iklan grup), AUTO (iklan produk otomatis)</td></tr>
+<tr><td><b>Bidding</b></td><td>auto atau manual</td></tr>
+<tr><td><b>Status</b></td><td>ongoing, paused, ended</td></tr>
+<tr><td><b>Performa</b></td><td>Budget/hari, ROAS target, Spend 7h, GMV 7h, ROAS 7h</td></tr>
+</table>
+<div class="note">⚠️ Tag <code>[baik]</code> dan <code>[boros]</code> pada nama kampanye hanya penanda <b>data demo</b>.</div>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Kampanye]</p>
+
+<h3>3.5 Toko</h3>
+<p><b>Fungsi:</b> Kelola semua toko/cabang — tambah toko, atur plafon harian, aktifkan/nonaktifkan autopilot per toko.</p>
+<table>
+<tr><th>Kolom</th><th>Keterangan</th></tr>
+<tr><td><b>Autopilot</b></td><td>ON/OFF — checkbox per toko</td></tr>
+<tr><td><b>Plafon &amp; izin</b></td><td>Input plafon harian + checkbox autopilot + tombol simpan</td></tr>
+<tr><td><b>Sinkron terakhir</b></td><td>Kapan terakhir kali data disinkronkan</td></tr>
+</table>
+<div class="note">🛡️ <b>Plafon harian</b> adalah rem terakhir: total budget tidak akan melebihi plafon ini.</div>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Toko]</p>
+
+<h3>3.6 Settings</h3>
+<p><b>Fungsi:</b> Mode operasi, interval scheduler, kredensial API, dan konfigurasi Telegram.</p>
+<table>
+<tr><th>Bagian</th><th>Keterangan</th></tr>
+<tr><td><b>Mode operasi</b></td><td>Tombol DEMO ↔ LIVE (LIVE butuh konfirmasi)</td></tr>
+<tr><td><b>Interval siklus</b></td><td>Menit (min 5, max 720)</td></tr>
+<tr><td><b>Kredensial API</b></td><td>Status SHOPEE_PARTNER_ID/KEY</td></tr>
+<tr><td><b>Telegram</b></td><td>Bot Token + Chat ID + tombol uji</td></tr>
+</table>
+<p style="color:#6b7280;font-style:italic">[screenshot: halaman Settings]</p>
+</div>
+
+<!-- ===== 4 ===== -->
+<div class="kartu" id="s4">
+<h2>4. Cara Membuat Aturan Step-by-Step</h2>
+
+<h3>Langkah 1 — Buka halaman Aturan</h3>
+<p>Klik menu <b>Aturan</b> di navigasi atas.</p>
+
+<h3>Langkah 2 — Isi form di bawah tabel</h3>
+
+<h4>4a. Informasi Dasar</h4>
+<table>
+<tr><th>Field</th><th>Keterangan</th><th>Contoh</th></tr>
+<tr><td><b>Nama aturan</b></td><td>Nama yang mudah diingat</td><td>"Rem kampanye boncos"</td></tr>
+<tr><td><b>Berlaku untuk</b></td><td>Scope: Semua / Toko / Kampanye / Tipe</td><td>"Semua kampanye"</td></tr>
+<tr><td><b>Prioritas</b></td><td>Angka kecil = dievaluasi duluan</td><td>10</td></tr>
+</table>
+
+<h4>4b. Kondisi Utama</h4>
+<table>
+<tr><th>Field</th><th>Keterangan</th><th>Contoh</th></tr>
+<tr><td><b>Metrik</b></td><td>ROAS, Spend, GMV, CTR, Konversi, Biaya/konversi</td><td>ROAS</td></tr>
+<tr><td><b>Jendela</b></td><td>1, 3, 7, 14, atau 30 hari</td><td>7</td></tr>
+<tr><td><b>Pembanding</b></td><td>&lt;, &gt;, ≥, ≤, turun &gt; X%, naik &gt; X%</td><td>&lt;</td></tr>
+<tr><td><b>Nilai ambang</b></td><td>Angka ambang</td><td>2</td></tr>
+</table>
+
+<h4>4c. Kondisi ke-2 (Opsional, AND)</h4>
+<p>Metrik tambahan + pembanding + ambang + jendela. Pilih "— tidak ada —" jika tidak perlu.</p>
+
+<h4>4d. Aksi</h4>
+<table>
+<tr><th>Field</th><th>Keterangan</th><th>Contoh</th></tr>
+<tr><td><b>Aksi</b></td><td>Naikkan budget, Turunkan budget, Pause, Resume, Bid up, Bid down, Notifikasi</td><td>Turunkan budget</td></tr>
+<tr><td><b>Besar aksi (%)</b></td><td>Persentase perubahan</td><td>20</td></tr>
+</table>
+
+<h4>4e. Batas Aman</h4>
+<table>
+<tr><th>Field</th><th>Keterangan</th><th>Contoh</th></tr>
+<tr><td><b>Lantai budget</b></td><td>Budget tidak boleh turun di bawah ini</td><td>Rp 20.000</td></tr>
+<tr><td><b>Plafon per kampanye</b></td><td>Budget tidak boleh naik di atas ini (0 = ∞)</td><td>Rp 500.000</td></tr>
+<tr><td><b>Maks aksi/hari</b></td><td>Anti-oscilasi</td><td>2</td></tr>
+</table>
+
+<h4>4f. Opsi Tambahan</h4>
+<table>
+<tr><th>Field</th><th>Keterangan</th></tr>
+<tr><td><b>Notifikasi</b></td><td>Telegram atau Diam saja</td></tr>
+<tr><td><b>Persetujuan</b></td><td>Centang "Minta konfirmasi dulu" untuk aksi manual di Log</td></tr>
+</table>
+
+<h3>Langkah 3 — Klik Simpan</h3>
+<p>Klik tombol <b>＋ Simpan aturan (dry-run 24 jam)</b>.</p>
+<div class="note">⚠️ Aturan baru otomatis <b>dry-run 24 jam</b> — dievaluasi &amp; dicatat, tapi belum dieksekusi.</div>
+
+<h3>5 Contoh Resep Aturan Siap Pakai</h3>
+<table>
+<tr><th>Nama</th><th>Scope</th><th>Kondisi</th><th>Aksi</th><th>Batas Aman</th><th>Prioritas</th><th>Kapan Dipakai</th></tr>
+<tr><td><b>Rem kampanye boncos</b></td><td>Semua</td><td>ROAS 7h &lt; 1 DAN spend ≥ Rp100rb</td><td>Budget −30%</td><td>Lantai Rp20rb, 1×/hari</td><td>10</td><td>Kampanye boros perlu ditekan</td></tr>
+<tr><td><b>Gas kampanye juara</b></td><td>Tipe MANUAL</td><td>ROAS 7h ≥ 3</td><td>Budget +20%</td><td>Plafon Rp500rb, 1×/hari</td><td>20</td><td>Kampanye bagus perlu scale up</td></tr>
+<tr><td><b>Pause total boncos</b></td><td>Semua</td><td>ROAS 14h &lt; 0.5</td><td>⏸ Pause</td><td>Minta konfirmasi, 1×/hari</td><td>5</td><td>Sangat merugi — pause total</td></tr>
+<tr><td><b>Pengingat migrasi</b></td><td>Tipe AUTO</td><td>Spend 7h &gt; Rp50rb</td><td>🔔 Notif saja</td><td>1×/hari</td><td>90</td><td>Pengingat migrasi</td></tr>
+<tr><td><b>ROAS turun tajam</b></td><td>Semua</td><td>ROAS turun &gt; 30% vs periode blm</td><td>Budget −20%</td><td>Lantai Rp30rb, 2×/hari</td><td>15</td><td>Penurunan mendadak</td></tr>
+</table>
+</div>
+
+<!-- ===== 5 ===== -->
+<div class="kartu" id="s5">
+<h2>5. Panduan Mengisi Prioritas</h2>
+<p>Prioritas menentukan <b>urutan evaluasi</b> aturan. Angka kecil = dievaluasi duluan.</p>
+<table>
+<tr><th>Jenis aturan</th><th>Isi prioritas</th><th>Contoh Anda</th></tr>
+<tr><td>⏸ Pause kampanye (paling tegas)</td><td>5</td><td>Pause total boncos → 5 ✓</td></tr>
+<tr><td>📉 Turunkan budget / rem boncos</td><td>10</td><td>Rem kampanye boncos → 10 ✓</td></tr>
+<tr><td>📈 Naikkan budget / gas juara</td><td>20–30</td><td>Gas kampanye juara → 20 ✓</td></tr>
+<tr><td>🔔 Cuma notifikasi / pengingat</td><td>90</td><td>Pengingat migrasi → 90 ✓</td></tr>
+<tr><td>❓ Tidak tahu / aturan umum</td><td>50</td><td>default</td></tr>
+</table>
+
+<div class="note">
+<b>Kenapa aturan "rem/pengaman" harus berangka lebih kecil dari aturan "gas"?</b><br><br>
+Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil dievaluasi duluan. Jika sebuah kampanye memenuhi syarat untuk <i>pause</i> (angka prioritas 5) dan sekaligus syarat untuk <i>naikkan budget</i> (angka prioritas 20), maka aturan pause akan dieksekusi terlebih dahulu. Ini memastikan bahwa <b>rem darurat selalu lebih cepat dari akselerasi</b> — budget tidak akan dinaikkan untuk kampanye yang seharusnya dipause. Kebalikannya berbahaya: jika aturan "gas" (angka 20) dievaluasi duluan, budget bisa dinaikkan sejenak sebelum pause mengejar.
+</div>
+
+<p>💡 <b>Tips:</b> Mulai dengan angka "longgar" (misal pause=5, rem=10, gas=20, notif=90). Sesuaikan nanti berdasarkan hasil di Log.</p>
+</div>
+
+<!-- ===== 6 ===== -->
+<div class="kartu" id="s6">
+<h2>6. Membaca Log Keputusan</h2>
+
+<h3>Status dalam Log</h3>
+<table>
+<tr><th>Status</th><th>Artinya</th></tr>
+<tr><td><b>executed</b></td><td>✅ Aksi berhasil dieksekusi</td></tr>
+<tr><td><b>dryrun</b></td><td>⏳ Aksi hanya dicatat, belum dieksekusi (masih dry-run)</td></tr>
+<tr><td><b>throttled</b></td><td>🚫 Dibatasi — sudah mencapai maks aksi/hari</td></tr>
+<tr><td><b>blocked</b></td><td>🛑 Dibatasi pengaman — budget unlimited, plafon tercapai, dll.</td></tr>
+<tr><td><b>pending</b></td><td>⏸ Menunggu persetujuan Anda — klik ✔ atau ✖ di Log</td></tr>
+<tr><td><b>rejected</b></td><td>❌ Ditolak oleh Anda</td></tr>
+</table>
+
+<h3>Membaca Ringkasan Siklus</h3>
+<p>Contoh: <code>evaluasi 114, terpicu 23, eksekusi 3, dryrun 2, throttle 14, blocked 6, pending 2</code></p>
+<table>
+<tr><th>Komponen</th><th>Angka</th><th>Penjelasan</th></tr>
+<tr><td><b>evaluasi</b></td><td>114</td><td>Total kombinasi aturan × kampanye yang dicek</td></tr>
+<tr><td><b>terpicu</b></td><td>23</td><td>Kondisi terpenuhi (lolos filter)</td></tr>
+<tr><td><b>eksekusi</b></td><td>3</td><td>Aksi benar-benar dijalankan</td></tr>
+<tr><td><b>dryrun</b></td><td>2</td><td>Hanya dicatat (aturan masih dry-run)</td></tr>
+<tr><td><b>throttle</b></td><td>14</td><td>Dibatasi maks aksi/hari</td></tr>
+<tr><td><b>blocked</b></td><td>6</td><td>Dibatasi pengaman</td></tr>
+<tr><td><b>pending</b></td><td>2</td><td>Menunggu persetujuan Anda</td></tr>
+</table>
+</div>
+
+<!-- ===== 7 ===== -->
+<div class="kartu" id="s7">
+<h2>7. Setup Telegram &amp; Kirim Pesan Uji</h2>
+
+<h3>Langkah 1 — Buat Bot Telegram</h3>
+<ol>
+<li>Buka Telegram, cari chat <b>@BotFather</b></li>
+<li>Kirim <code>/newbot</code></li>
+<li>Ikuti instruksi: beri nama bot (misal: "Ads Autopilot") dan username</li>
+<li>Salin <b>token</b> yang diberikan (format: <code>123456:AA...</code>)</li>
+</ol>
+
+<h3>Langkah 2 — Dapatkan Chat ID</h3>
+<ol>
+<li>Kirim pesan apa saja ke bot baru Anda</li>
+<li>Buka Telegram, cari chat <b>@userinfobot</b></li>
+<li>Kirim <code>/start</code> — bot akan menampilkan <b>Chat ID</b> Anda</li>
+</ol>
+
+<h3>Langkah 3 — Isi di Settings</h3>
+<ol>
+<li>Buka halaman <b>Settings</b> di dashboard</li>
+<li>Isi <b>Telegram Bot Token</b> dengan token dari @BotFather</li>
+<li>Isi <b>Telegram Chat ID</b> dengan angka dari @userinfobot</li>
+<li>Klik <b>💾 Simpan settings</b></li>
+</ol>
+
+<h3>Langkah 4 — Kirim Pesan Uji</h3>
+<p>Klik tombol <b>✈️ Kirim pesan uji Telegram</b>. Pesan berhasil: <code>✅ Uji Telegram dari Ads Autopilot berhasil!</code></p>
+</div>
+
+<!-- ===== 8 ===== -->
+<div class="kartu" id="s8">
+<h2>8. Menjalankan 24 Jam di PC Windows</h2>
+
+<h3>Cara Utama: Server + Scheduler Bawaan</h3>
+<pre>python run.py</pre>
+<p>Scheduler thread bawaan menjalankan siklus evaluasi otomatis tiap interval (default 60 menit, ubah di Settings).</p>
+
+<h3>Alternatif: Windows Task Scheduler</h3>
+<pre>schtasks /create /tn "ShopeeAdsAutopilot" ^
+  /tr "\"C:\path\ke\python.exe\" \"C:\path\ke\shopee-ads-autopilot\scripts\run_engine_once.py\"" ^
+  /sc minute /mo 60</pre>
+
+<h3>Autostart saat Windows Nyala</h3>
+<ul>
+<li><b>Cara 1:</b> Buat shortcut <code>run.py</code> → taruh di folder <code>shell:startup</code></li>
+<li><b>Cara 2:</b> Gunakan Task Scheduler dengan trigger <b>At system startup</b></li>
+</ul>
+
+<h3>Backup</h3>
+<p>Cukup salin file <code>autopilot.db</code>. Jika mode LIVE, juga backup folder <code>tokens/</code>.</p>
+</div>
+
+<!-- ===== 9 ===== -->
+<div class="kartu" id="s9">
+<h2>9. Roadmap dari DEMO ke LIVE</h2>
+
+<div class="note" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">
+🗺️ <b>Roadmap Anda setelah ini</b>
+</div>
+
+<h3>Minggu ini (Mode DEMO — tanpa risiko):</h3>
+<ol>
+<li>Jalankan 3 perintah instalasi → dashboard terbuka dengan 6 toko + 30 kampanye contoh</li>
+<li>Coba buat aturan sendiri di halaman Aturan (mis. "ROAS &lt; 2 → turunkan budget 20%")</li>
+<li>Klik ▶ Jalankan Siklus Evaluasi di Monitoring → lihat hasilnya di Log Keputusan</li>
+<li>Isi Telegram di Settings (@BotFather → token, @userinfobot → chat ID) → "Kirim pesan uji"</li>
+<li>Coba pencet ⛔ KILL-SWITCH di pojok kanan atas — rasakan rem daruratnya</li>
+</ol>
+
+<h3>Nanti (menuju data toko asli):</h3>
+<ol start="6">
+<li>Daftarkan app di Shopee Open Platform → dapat <code>partner_id</code> + <code>partner_key</code> → isi ke <code>.env</code></li>
+<li>Email/chat Shopee Partner Support minta scope Ads (modul 117) diaktifkan</li>
+<li>Otorisasi tiap cabang: <code>python scripts\authorize_shop.py --nama "Cabang Bandung"</code></li>
+<li>Verifikasi field Tingkat 2 — bilang ke asisten AI saat sampai tahap ini</li>
+<li>Baru aktifkan mode LIVE (aturan baru tetap otomatis dry-run 24 jam dulu)</li>
+</ol>
+</div>
+
+<!-- ===== 10 ===== -->
+<div class="kartu" id="s10">
+<h2>10. Jujur soal API</h2>
+<p>Shopee Ads Autopilot menggunakan <b>Shopee Open Platform API v2 resmi</b>. Ada 3 tingkat verifikasi:</p>
+
+<h3>Tingkat 1 — Terkonfirmasi dari Dokumentasi Resmi</h3>
+<table>
+<tr><th>Endpoint</th><th>Kegunaan</th></tr>
+<tr><td><code>POST /api/v2/auth/token/get</code></td><td>OAuth &amp; refresh token</td></tr>
+<tr><td><code>GET /api/v2/ads/get_product_level_campaign_id_list</code></td><td>Daftar kampanye produk</td></tr>
+<tr><td><code>GET /api/v2/ads/get_product_campaign_daily_performance</code></td><td>Performa harian kampanye</td></tr>
+<tr><td><code>GET /api/v2/ads/get_total_balance</code></td><td>Sisa saldo iklan</td></tr>
+</table>
+
+<h3>Tingkat 2 — Perlu Verifikasi Saat Akun Developer Aktif</h3>
+<table>
+<tr><th>Endpoint</th><th>Kegunaan</th><th>Catatan</th></tr>
+<tr><td><code>POST /api/v2/ads/edit_manual_product_ads</code></td><td>Ubah budget &amp; status</td><td>Nama field perlu diverifikasi</td></tr>
+<tr><td><code>POST /api/v2/ads/edit_manual_product_ad_keywords</code></td><td>Penyesuaian bid keyword</td><td>Schema perlu diverifikasi</td></tr>
+</table>
+<div class="note">⚠️ <b>Mode LIVE tidak boleh diaktifkan sebelum Tingkat 2 diverifikasi.</b></div>
+
+<h3>Tingkat 3 — Keputusan Desain Keamanan Aplikasi</h3>
+<ul>
+<li>Kampanye <b>tipe AUTO</b> tidak ditulis — endpoint akan dimatikan Shopee</li>
+<li><b>DRY-RUN 24 jam</b> per aturan baru</li>
+<li><b>Kill-switch</b>, <b>plafon per toko</b>, <b>lantai/plafon per kampanye</b>, <b>maks aksi/hari</b></li>
+</ul>
+</div>
+
+<!-- ===== 11 ===== -->
+<div class="kartu" id="s11">
+<h2>11. Troubleshooting &amp; FAQ</h2>
+
+<h3>Q1: Server tidak mau nyala?</h3>
+<ol>
+<li>Pastikan Python terinstall: <code>python --version</code></li>
+<li>Install dependensi: <code>python -m pip install -r requirements.txt</code></li>
+<li>Pastikan di folder yang benar sebelum <code>python run.py</code></li>
+<li>Jika <code>ModuleNotFoundError</code>, jalankan ulang <code>pip install</code></li>
+</ol>
+
+<h3>Q2: Port 8765 sudah dipakai?</h3>
+<pre>python run.py --port 9000</pre>
+
+<h3>Q3: Kampanye tidak muncul?</h3>
+<ol>
+<li>Jalankan <code>python scripts\seed_demo.py</code></li>
+<li>Jika LIVE: pastikan toko sudah diotorisasi</li>
+<li>Pastikan scope Ads (modul 117) aktif</li>
+<li>Klik <b>↻ Sinkron + Evaluasi</b></li>
+</ol>
+
+<h3>Q4: Telegram tidak terkirim?</h3>
+<ol>
+<li>Pastikan bot sudah pernah dikirim pesan minimal sekali</li>
+<li>Cek token dan Chat ID di Settings</li>
+<li>Klik <b>✈️ Kirim pesan uji</b></li>
+</ol>
+
+<h3>Q5: Throttle terus?</h3>
+<p>Naikkan <code>max_actions_day</code> di form edit aturan, atau tunggu hari berikutnya.</p>
+
+<h3>Q6: Reset demo dari nol?</h3>
+<pre>python scripts\seed_demo.py --reset</pre>
+
+<h3>Q7: Backup?</h3>
+<p>Salin <code>autopilot.db</code>. Jika LIVE, juga backup folder <code>tokens/</code>.</p>
+
+<h3>Q8: Matikan autopilot untuk 1 toko?</h3>
+<p>Halaman <b>Toko</b> → uncentang checkbox <b>autopilot</b> → 💾.</p>
+
+<h3>Q9: Akhiri dry-run lebih awal?</h3>
+<p>Halaman <b>Aturan</b> → <b>ubah</b> → centang "Akhiri dry-run lebih awal" → Simpan.</p>
+
+<h3>Q10: Apakah aman untuk saldo?</h3>
+<ol>
+<li>Mode awal DEMO — tidak ada API tulis</li>
+<li>Dry-run 24 jam per aturan baru</li>
+<li>Kill-switch global</li>
+<li>Autopilot per toko</li>
+<li>Plafon harian per toko</li>
+<li>Lantai &amp; plafon per kampanye</li>
+<li>Maks aksi/hari</li>
+<li>Minta konfirmasi</li>
+<li>Log Keputusan permanen</li>
+</ol>
+</div>
+
+<!-- ===== 12 ===== -->
+<div class="kartu" id="s12">
+<h2>12. Glosarium Iklan untuk Pemula</h2>
+<table>
+<tr><th>Istilah</th><th>Arti</th><th>Contoh</th></tr>
+<tr><td><b>ROAS</b></td><td><i>Return on Ad Spend</i> — berapa rupiah GMV dari setiap rupiah spend. ROAS 3× = spend Rp10rb → GMV Rp30rb.</td><td>"ROAS 7 hari: 2.5×"</td></tr>
+<tr><td><b>GMV</b></td><td><i>Gross Merchandise Value</i> — total nilai transaksi dari iklan.</td><td>"GMV 7 hari: Rp 5.000.000"</td></tr>
+<tr><td><b>CTR</b></td><td><i>Click-Through Rate</i> — persentase impresi yang mengklik. CTR 2% = 1000 tayangan → 20 klik.</td><td>"CTR turun ke 0.8%"</td></tr>
+<tr><td><b>Spend</b></td><td>Jumlah uang keluar untuk iklan.</td><td>"Spend 7 hari: Rp 200.000"</td></tr>
+<tr><td><b>Konversi</b></td><td>Jumlah pembelian dari klik iklan.</td><td>"Konversi: 5 transaksi"</td></tr>
+<tr><td><b>Biaya/konversi</b></td><td>Rupiah per 1 konversi. Rp20rb = spend Rp100rb → 5 pembelian.</td><td>"Biaya/konversi: Rp 40.000"</td></tr>
+<tr><td><b>Budget harian</b></td><td>Batas maks spend per hari per kampanye.</td><td>"Budget: Rp 100.000/hari"</td></tr>
+<tr><td><b>Bidding manual</b></td><td>Bid keyword diatur manual (oleh Anda/autopilot).</td><td>"Bidding manual → bid bisa diatur"</td></tr>
+<tr><td><b>Bidding auto</b></td><td>Bid diatur Shopee otomatis. Kontrol terbatas: budget &amp; tanggal.</td><td>"Bidding auto → kontrol terbatas"</td></tr>
+<tr><td><b>GMS / GMV Max</b></td><td>Tipe kampanye iklan grup — fokus maksimalkan GMV.</td><td>"GMV Max - Produk Juara"</td></tr>
+<tr><td><b>Pause</b></td><td>Hentikan sementara kampanye. Bisa diaktifkan kembali.</td><td>"Kampanye boncos → pause"</td></tr>
+<tr><td><b>Resume</b></td><td>Aktifkan kembali kampanye yang dipause.</td><td>"Sudah diperbaiki → resume"</td></tr>
+<tr><td><b>Kill-switch</b></td><td>Tombol darurat global — hentikan SEMUA aksi dalam 1 klik.</td><td>"Klik ⛔ untuk stop semua"</td></tr>
+<tr><td><b>Plafon</b></td><td>Batas atas — budget tidak boleh melebihi ini.</td><td>"Plafon: Rp 500.000"</td></tr>
+<tr><td><b>Lantai</b></td><td>Batas bawah — budget tidak boleh di bawah ini.</td><td>"Lantai: Rp 20.000"</td></tr>
+<tr><td><b>Dry-run</b></td><td>Mode percobaan — evaluasi &amp; catat, belum eksekusi.</td><td>"Dry-run 24 jam dulu"</td></tr>
+<tr><td><b>Throttle</b></td><td>Pembatasan aksi/hari per kampanye.</td><td>"Di-throttle karena sudah maks"</td></tr>
+</table>
+</div>
+
+<div class="kartu" style="text-align:center;color:#6b7280">
+<p><b>Catatan:</b> Aplikasi ini bukan produk resmi Shopee. Gunakan sesuai Syarat &amp; Ketentuan Shopee Open Platform. Semua aksi tulis hanya via API resmi, dan mode DEMO tidak menyentuh saldo iklan Anda sama sekali.</p>
+</div>
+{% endblock %}

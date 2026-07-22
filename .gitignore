@@ -1,0 +1,18 @@
+# rahasia — jangan pernah commit
+.env
+tokens/
+
+# data lokal
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+raw_payload/
+sync_state/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/

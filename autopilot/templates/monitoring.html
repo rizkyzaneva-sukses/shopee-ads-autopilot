@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Monitoring{% endblock %}
+{% block content %}
+<h1>Monitoring</h1>
+<p class="sub">Kesehatan iklan semua toko — performa 7 hari terakhir.</p>
+
+<div class="grid g4">
+  <div class="kpi amber"><div class="lbl">Spend 7 Hari</div><div class="val">{{ spend7|idr }}</div></div>
+  <div class="kpi biru"><div class="lbl">GMV 7 Hari</div><div class="val">{{ gmv7|idr }}</div></div>
+  <div class="kpi {{ 'hijau' if roas7>=2 else 'merah' }}"><div class="lbl">ROAS 7 Hari</div><div class="val">{{ '%.2f'|format(roas7) }}×</div></div>
+  <div class="kpi"><div class="lbl">Kampanye Aktif</div><div class="val">{{ kampanye|selectattr('status','equalto','ongoing')|list|length }}</div></div>
+</div>
+
+<div class="kartu">
+  <div class="toolbar" style="margin:0">
+    <b>Kampanye dipantau: {{ kampanye|length }}</b>
+    <form method="get" action="/" class="inline">
+      <select name="store">
+        <option value="0">Semua toko</option>
+        {% for s in toko %}<option value="{{ s['id'] }}" {{ 'selected' if store==s['id'] }}>{{ s['nama'] }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn-min">Filter</button>
+    </form>
+    <span style="flex:1"></span>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-hijau btn-min">▶ Jalankan Siklus Evaluasi Sekarang</button></form>
+  </div>
+  <table>
+    <tr><th>Toko</th><th>Kampanye</th><th>Tipe</th><th>Status</th><th class="num">Budget/hari</th>
+        <th class="num">Spend 7h</th><th class="num">GMV 7h</th><th class="num">ROAS</th><th class="num">ROAS Target</th></tr>
+    {% for k in kampanye %}
+    {% set roas = (k['gmv_7d'] / k['spend_7d']) if k['spend_7d'] else 0 %}
+    <tr>
+      <td>{{ k['nama_toko'] }}</td>
+      <td>{{ k['nama'][:38] }}</td>
+      <td><span class="badge {{ 'b-biru' if k['type']=='manual' else 'b-ungu' if k['type']=='gms' else 'b-abu' }}">{{ k['type']|upper }}</span></td>
+      <td><span class="badge {{ 'b-hijau' if k['status']=='ongoing' else 'b-kuning' if k['status']=='paused' else 'b-abu' }}">{{ k['status'] }}</span></td>
+      <td class="num">{{ '∞' if (k['daily_budget'] or 0)==0 else k['daily_budget']|idr }}</td>
+      <td class="num">{{ k['spend_7d']|idr }}</td>
+      <td class="num">{{ k['gmv_7d']|idr }}</td>
+      <td class="num" style="font-weight:700;color:{{ '#16a34a' if roas>=2 else '#d97706' if roas>=1.5 else '#dc2626' }}">{{ '%.2f'|format(roas) }}×</td>
+      <td class="num">{{ '%.2f'|format(k['roas_target']) }}×{{ ' (GMV Max)' if k['roas_target']>0 }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9" style="padding:28px;text-align:center;color:#6b7280">
+      Belum ada kampanye. Jalankan <code>python scripts/seed_demo.py</code> untuk data demo, atau set mode LIVE untuk menarik dari API.
+    </td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="grid g2">
+  <div class="kartu">
+    <b>Tren 14 Hari (Spend vs GMV)</b><br><br>
+    {% if tren %}
+    <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid meet" style="max-width:100%">
+      {% set vmax = tren|map(attribute='gmv')|max if tren|map(attribute='gmv')|max > 0 else 1 %}
+      {% set w, h, pl = 520, 200, 50 %}
+      {% for g in range(4) %}
+      <line x1="{{pl}}" y1="{{20 + g*38}}" x2="{{w-10}}" y2="{{20 + g*38}}" stroke="#e5e7eb"/>
+      <text x="{{pl-6}}" y="{{24 + g*38}}" font-size="9" fill="#6b7280" text-anchor="end">{{ ((vmax*(3-g)/3/1000000)|round(1)) }}jt</text>
+      {% endfor %}
+      {% set n = tren|length %}
+      {% set pts_g = [] %}{% set pts_s = [] %}
+      {% for t in tren %}
+        {% set x = pl + (w-pl-20) * loop.index0 / (n-1 if n>1 else 1) %}
+        {% set _ = pts_g.append(x ~ ',' ~ (170 - t.gmv/vmax*150)) %}
+        {% set _ = pts_s.append(x ~ ',' ~ (170 - t.spend/vmax*150)) %}
+        {% if loop.index0 % 2 == 0 %}
+        <text x="{{ x }}" y="192" font-size="8" fill="#6b7280" text-anchor="middle">{{ t.tanggal[5:] }}</text>{% endif %}
+      {% endfor %}
+      <polyline points="{{ pts_g|join(' ') }}" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+      <polyline points="{{ pts_s|join(' ') }}" fill="none" stroke="#d97706" stroke-width="2.5"/>
+      <circle cx="{{w-90}}" cy="14" r="4" fill="#2563eb"/><text x="{{w-82}}" y="18" font-size="10" fill="#6b7280">GMV</text>
+      <circle cx="{{w-40}}" cy="14" r="4" fill="#d97706"/><text x="{{w-32}}" y="18" font-size="10" fill="#6b7280">Spend</text>
+    </svg>
+    {% else %}<p style="color:#6b7280">Belum ada data performa.</p>{% endif %}
+  </div>
+  <div class="kartu">
+    <b>Keputusan Terakhir</b>
+    <table>
+      <tr><th>Waktu</th><th>Kampanye</th><th>Aksi</th><th>Status</th></tr>
+      {% for d in decisions %}
+      <tr><td>{{ d.created_at[5:16] }}</td><td>{{ (d.nama_kampanye or '-')[:24] }}</td>
+          <td>{{ (d.aksi or '-')[:26] }}</td>
+          <td><span class="badge {{ 'b-hijau' if d.status=='executed' else 'b-kuning' if d.status=='pending' else 'b-abu' if d.status in ('dryrun','skipped') else 'b-merah' }}">{{ d.status }}</span></td></tr>
+      {% else %}<tr><td colspan="4">Belum ada keputusan — jalankan siklus evaluasi.</td></tr>{% endfor %}
+    </table>
+    <br><a href="/log">Lihat semua log →</a>
+  </div>
+</div>
+{% endblock %}

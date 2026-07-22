@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Kampanye{% endblock %}
+{% block content %}
+<h1>Kampanye</h1>
+<p class="sub">Daftar kampanye iklan yang dipantau autopilot — semua toko, semua jenis.</p>
+
+<div class="kartu">
+  <div class="toolbar" style="margin:0">
+    <form method="get" action="/kampanye" class="inline">
+      <select name="store">
+        <option value="0">Semua toko</option>
+        {% for s in toko %}<option value="{{ s['id'] }}" {{ 'selected' if store==s['id'] }}>{{ s['nama'] }}</option>{% endfor %}
+      </select>
+      <select name="type_">
+        <option value="">Semua tipe</option>
+        {% for t in ['manual','gms','auto'] %}<option value="{{ t }}" {{ 'selected' if type_==t }}>{{ t|upper }}</option>{% endfor %}
+      </select>
+      <select name="status">
+        <option value="">Semua status</option>
+        {% for st in ['ongoing','paused','ended'] %}<option value="{{ st }}" {{ 'selected' if status==st }}>{{ st }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn-min">Filter</button>
+    </form>
+    <span style="flex:1"></span>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">↻ Sinkron + Evaluasi</button></form>
+  </div>
+  <table>
+    <tr><th>Toko</th><th>Kampanye</th><th>Tipe</th><th>Bidding</th><th>Status</th>
+        <th class="num">Budget/hari</th><th class="num">ROAS target</th>
+        <th class="num">Spend 7h</th><th class="num">GMV 7h</th><th class="num">ROAS 7h</th></tr>
+    {% for k in kampanye %}
+    {% set roas = (k['gmv_7d'] / k['spend_7d']) if k['spend_7d'] else 0 %}
+    <tr>
+      <td>{{ k['nama_toko'] }}</td>
+      <td style="white-space:normal;max-width:220px"><b>{{ k['nama'][:44] }}</b><br>
+        <span style="color:#9ca3af;font-size:11px">ext: {{ k['ext_id'] }}</span></td>
+      <td><span class="badge {{ 'b-biru' if k['type']=='manual' else 'b-ungu' if k['type']=='gms' else 'b-abu' }}">{{ k['type']|upper }}</span>
+        {% if k['type']=='auto' %}<span class="badge b-amber" title="Endpoint iklan otomatis akan dimatikan Shopee — autopilot tidak menulis ke kampanye ini">⚠ migrasi</span>{% endif %}</td>
+      <td>{{ k['bidding_method'] }}</td>
+      <td><span class="badge {{ 'b-hijau' if k['status']=='ongoing' else 'b-kuning' if k['status']=='paused' else 'b-abu' }}">{{ k['status'] }}</span></td>
+      <td class="num">{{ '∞' if (k['daily_budget'] or 0)==0 else k['daily_budget']|idr }}</td>
+      <td class="num">{{ '%.2f'|format(k['roas_target']) }}×</td>
+      <td class="num">{{ k['spend_7d']|idr }}</td>
+      <td class="num">{{ k['gmv_7d']|idr }}</td>
+      <td class="num" style="font-weight:700;color:{{ '#16a34a' if roas>=2 else '#d97706' if roas>=1.5 else '#dc2626' }}">{{ '%.2f'|format(roas) }}×</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" style="padding:28px;text-align:center;color:#6b7280">
+      Belum ada kampanye. Jalankan <code>python scripts/seed_demo.py</code> (data demo), atau hubungkan toko nyata di halaman <a href="/toko">Toko</a>.
+    </td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="kartu">
+  <b>Membaca tabel ini</b>
+  <ul style="margin-bottom:0;color:#374151;line-height:1.9">
+    <li><span class="badge b-biru">MANUAL</span> iklan produk individual — kontrol penuh (budget, status, bid keyword bila bidding <i>manual</i>).</li>
+    <li><span class="badge b-ungu">GMS</span> GMV Max / iklan grup — autopilot mengatur di level kampanye & item (budget, ROAS target).</li>
+    <li><span class="badge b-abu">AUTO</span> Iklan Produk Otomatis — API hanya mengizinkan ubah <b>budget & tanggal</b>, tanpa kontrol bid; endpointnya dijadwalkan Shopee untuk dimatikan. Autopilot menolak menulis ke tipe ini dan menyarankan migrasi ke manual auto-bidding.</li>
+    <li>Tag <code>[baik]</code> / <code>[boros]</code> pada nama hanya penanda <b>data demo</b> untuk memicu skenario aturan.</li>
+  </ul>
+</div>
+{% endblock %}
