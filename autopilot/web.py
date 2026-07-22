@@ -36,12 +36,12 @@ def _startup() -> None:
     db.init(DB_PATH)
 
 
-def _render(request: Request, page: str, **ctx):
+def _render(request: Request, template: str, **ctx):
     c = db.conn()
-    base = {"page": page, "msg": request.query_params.get("msg", ""),
+    base = {"page": template, "msg": request.query_params.get("msg", ""),
             "bagan": {"pending": db.pending_count(c), "kill": db.is_kill(c),
                       "mode": db.mode(c)}}
-    return templates.TemplateResponse(request, f"{page}.html", {**base, **ctx})
+    return templates.TemplateResponse(request, f"{template}.html", {**base, **ctx})
 
 
 def _goto(url: str, msg: str) -> RedirectResponse:
