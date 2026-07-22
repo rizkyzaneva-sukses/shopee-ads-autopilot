@@ -234,7 +234,7 @@ def panduan_page(request: Request):
     base = {"page": "panduan", "msg": request.query_params.get("msg", ""),
             "bagan": {"pending": db.pending_count(c), "kill": db.is_kill(c),
                       "mode": db.mode(c)}}
-    resp = templates.TemplateResponse(request, "panduan", base)
+    resp = templates.TemplateResponse(request, "panduan.html", base)
     resp.headers["Cache-Control"] = "public, max-age=3600"
     return resp
 
