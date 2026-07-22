@@ -43,7 +43,7 @@ def _convert_pg(sql: str, params) -> Tuple[str, list]:
     def _repl_date(m):
         n = int(m.group(1))
         unit = "day" if abs(n) == 1 else "days"
-        return f"CURRENT_DATE - INTERVAL '{abs(n)} {unit}'"
+        return f"(CURRENT_DATE - INTERVAL '{abs(n)} {unit}')::TEXT"
     sql = re.sub(r"date\(\s*'now'\s*,\s*'-(\d+)\s+day'\s*\)", _repl_date, sql)
 
     # Parameterized date('now', %s) → CURRENT_DATE - INTERVAL 'N days'
@@ -56,8 +56,13 @@ def _convert_pg(sql: str, params) -> Tuple[str, list]:
             if isinstance(p, str) and re.match(r"^-\d+ day$", p):
                 n = int(p.split()[0].replace("-", ""))
                 unit = "day" if n == 1 else "days"
-                sql = sql[: match.start()] + f"CURRENT_DATE - INTERVAL '{n} {unit}'" + sql[match.end() :]
+                sql = sql[: match.start()] + f"(CURRENT_DATE - INTERVAL '{n} {unit}')::TEXT" + sql[match.end() :]
                 params.pop(param_idx)
+
+    # Final safety: cast any bare CURRENT_DATE to TEXT for TEXT column comparisons
+    sql = sql.replace("CURRENT_DATE)", "CURRENT_DATE::TEXT)")
+    # Also handle CURRENT_DATE at end of expressions (not followed by :: already)
+    sql = re.sub(r"CURRENT_DATE(?!\s*::)", "CURRENT_DATE::TEXT", sql)
     return sql, params
 
 
