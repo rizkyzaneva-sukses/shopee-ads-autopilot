@@ -1,70 +1,215 @@
-"""Lapisan database SQLite Autopilot + akses data."""
+"""Lapisan database Autopilot + akses data.
+
+Supports PostgreSQL (primary, via DATABASE_URL) and SQLite (fallback).
+When DATABASE_URL env var is set → psycopg2 with RealDictCursor.
+Otherwise → sqlite3 with Row factory (local dev).
+"""
 import os
+import re
 import sqlite3
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-_SCHEMA = os.path.join(os.path.dirname(__file__), "schema.sql")
-_CONN: Optional[sqlite3.Connection] = None
-_PATH: Optional[str] = None
+_IS_PG = bool(os.environ.get("DATABASE_URL"))
+
+if _IS_PG:
+    import psycopg2
+    import psycopg2.extras
+
+_SCHEMA_SQLITE = os.path.join(os.path.dirname(__file__), "schema.sql")
+_SCHEMA_PG = os.path.join(os.path.dirname(__file__), "schema_pg.sql")
+
+_CONN: Any = None
+_KEY: Optional[str] = None
 
 
-def init(path: str = "autopilot.db") -> sqlite3.Connection:
-    global _CONN, _PATH
-    if _CONN is not None and _PATH == path:
+# ================================================================ SQL conversion for PG
+def _convert_pg(sql: str, params) -> Tuple[str, list]:
+    """Translate SQLite-flavour SQL + params to PostgreSQL."""
+    if params is None:
+        params = []
+    params = list(params)
+
+    # ? → %s
+    sql = sql.replace("?", "%s")
+
+    # datetime('now','localtime') → NOW()
+    sql = sql.replace("datetime('now','localtime')", "NOW()")
+
+    # date('now','localtime') → CURRENT_DATE
+    sql = sql.replace("date('now','localtime')", "CURRENT_DATE")
+
+    # Hardcoded date intervals: date('now','-N day') → CURRENT_DATE - INTERVAL 'N days'
+    def _repl_date(m):
+        n = int(m.group(1))
+        unit = "day" if abs(n) == 1 else "days"
+        return f"CURRENT_DATE - INTERVAL '{abs(n)} {unit}'"
+    sql = re.sub(r"date\(\s*'now'\s*,\s*'-(\d+)\s+day'\s*\)", _repl_date, sql)
+
+    # Parameterized date('now', %s) → CURRENT_DATE - INTERVAL 'N days'
+    # Process from right-to-left so positions stay valid
+    pattern = re.compile(r"date\(\s*'now'\s*,\s*%s\s*\)")
+    for match in reversed(list(pattern.finditer(sql))):
+        param_idx = sql[: match.start()].count("%s")
+        if param_idx < len(params):
+            p = params[param_idx]
+            if isinstance(p, str) and re.match(r"^-\d+ day$", p):
+                n = int(p.split()[0].replace("-", ""))
+                unit = "day" if n == 1 else "days"
+                sql = sql[: match.start()] + f"CURRENT_DATE - INTERVAL '{n} {unit}'" + sql[match.end() :]
+                params.pop(param_idx)
+    return sql, params
+
+
+# ================================================================ cursor / connection wrappers
+class _Cursor:
+    """Thin wrapper exposing .rowcount, .lastrowid, .fetchone(), .fetchall()."""
+    __slots__ = ("_cur", "_lastrowid")
+
+    def __init__(self, raw_cursor, lastrowid=None):
+        self._cur = raw_cursor
+        self._lastrowid = lastrowid
+
+    @property
+    def rowcount(self):
+        return self._cur.rowcount
+
+    @property
+    def lastrowid(self):
+        return self._lastrowid
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+
+class _Conn:
+    """Unified connection — wraps sqlite3.Connection or psycopg2 connection.
+
+    Callers see:  .execute(sql, params) → _Cursor
+                  .commit()
+    """
+
+    def __init__(self, raw, is_pg: bool):
+        self._raw = raw
+        self._is_pg = is_pg
+
+    def execute(self, sql: str, params=None):
+        if self._is_pg:
+            sql, params = _convert_pg(sql, params)
+            sql_upper = sql.strip().upper()
+            is_simple_insert = (
+                sql_upper.startswith("INSERT")
+                and "ON CONFLICT" not in sql_upper
+                and "RETURNING" not in sql_upper
+            )
+            if is_simple_insert:
+                sql = sql.rstrip(";") + " RETURNING id"
+
+            cur = self._raw.cursor()
+            cur.execute(sql, params or [])
+
+            lastrowid = None
+            if is_simple_insert:
+                row = cur.fetchone()
+                if row:
+                    lastrowid = row["id"] if isinstance(row, dict) else row[0]
+            return _Cursor(cur, lastrowid)
+        else:
+            cur = self._raw.cursor()
+            if params:
+                cur.execute(sql, params)
+            else:
+                cur.execute(sql)
+            return _Cursor(cur, cur.lastrowid)
+
+    def commit(self):
+        self._raw.commit()
+
+    def close(self):
+        self._raw.close()
+
+
+# ================================================================ init / conn
+def init(path_or_url: str = "autopilot.db"):
+    global _CONN, _KEY
+    if _CONN is not None and _KEY == path_or_url:
         return _CONN
-    _PATH = path
-    _CONN = sqlite3.connect(path, check_same_thread=False)
-    _CONN.row_factory = sqlite3.Row
-    _CONN.execute("PRAGMA foreign_keys = ON")
-    with open(_SCHEMA, encoding="utf-8") as f:
-        _CONN.executescript(f.read())
+
+    if _IS_PG:
+        url = os.environ["DATABASE_URL"]
+        raw = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
+        raw.autocommit = False
+        _CONN = _Conn(raw, is_pg=True)
+        _KEY = url
+        with open(_SCHEMA_PG, encoding="utf-8") as f:
+            with raw.cursor() as cur:
+                cur.execute(f.read())
+        raw.commit()
+    else:
+        _KEY = path_or_url
+        raw = sqlite3.connect(path_or_url, check_same_thread=False)
+        raw.row_factory = sqlite3.Row
+        raw.execute("PRAGMA foreign_keys = ON")
+        _CONN = _Conn(raw, is_pg=False)
+        with open(_SCHEMA_SQLITE, encoding="utf-8") as f:
+            raw.executescript(f.read())
     return _CONN
 
 
-def conn() -> sqlite3.Connection:
+def conn():
     if _CONN is None:
+        url = os.environ.get("DATABASE_URL")
+        if url:
+            return init(url)
         return init(os.environ.get("AUTOPILOT_DB", "autopilot.db"))
     return _CONN
 
 
-# ---------------------------------------------------------------- settings
-def get_setting(c: sqlite3.Connection, key: str, default: str = "") -> str:
+# ================================================================ settings
+def get_setting(c, key: str, default: str = "") -> str:
     r = c.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
     return r["value"] if r else default
 
 
-def set_setting(c: sqlite3.Connection, key: str, value: str) -> None:
-    c.execute("INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-              (key, str(value)))
+def set_setting(c, key: str, value: str) -> None:
+    c.execute(
+        "INSERT INTO settings(key,value) VALUES (?,?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, str(value)),
+    )
 
 
-def mode(c: sqlite3.Connection) -> str:
+def mode(c) -> str:
     """demo = simulasi tanpa API; live = eksekusi sungguhan via Shopee API."""
     return get_setting(c, "mode", "demo")
 
 
-def is_kill(c: sqlite3.Connection) -> bool:
+def is_kill(c) -> bool:
     return get_setting(c, "kill", "0") == "1"
 
 
-def jendela(c: sqlite3.Connection) -> int:
+def jendela(c) -> int:
     try:
         return int(get_setting(c, "interval_menit", "60"))
     except ValueError:
         return 60
 
 
-# ---------------------------------------------------------------- stores & campaigns
-def upsert_store(c: sqlite3.Connection, shop_id_ext: str, nama: str) -> int:
+# ================================================================ stores & campaigns
+def upsert_store(c, shop_id_ext: str, nama: str) -> int:
     r = c.execute("SELECT id FROM stores WHERE shop_id_ext=?", (shop_id_ext,)).fetchone()
     if r:
         c.execute("UPDATE stores SET nama=? WHERE id=?", (nama, r["id"]))
         return r["id"]
-    return c.execute("INSERT INTO stores(shop_id_ext, nama) VALUES (?,?)", (shop_id_ext, nama)).lastrowid
+    return c.execute(
+        "INSERT INTO stores(shop_id_ext, nama) VALUES (?,?)", (shop_id_ext, nama)
+    ).lastrowid
 
 
-def list_stores(c: sqlite3.Connection) -> List[sqlite3.Row]:
+def list_stores(c) -> list:
     return c.execute("""
         SELECT s.*,
           (SELECT COUNT(*) FROM campaigns k WHERE k.store_id=s.id) AS jml_kampanye,
@@ -77,7 +222,7 @@ def list_stores(c: sqlite3.Connection) -> List[sqlite3.Row]:
         FROM stores s ORDER BY s.nama""").fetchall()
 
 
-def upsert_campaign(c: sqlite3.Connection, store_id: int, ext_id: str, nama: str,
+def upsert_campaign(c, store_id: int, ext_id: str, nama: str,
                     type_: str = "manual", bidding_method: str = "auto",
                     status: str = "ongoing", daily_budget: float = 0,
                     roas_target: float = 0, start_date: str = "", end_date: str = "") -> int:
@@ -94,8 +239,8 @@ def upsert_campaign(c: sqlite3.Connection, store_id: int, ext_id: str, nama: str
                      (store_id, ext_id)).fetchone()["id"]
 
 
-def list_campaigns(c: sqlite3.Connection, store_id: int = 0, type_: str = "",
-                   status: str = "") -> List[sqlite3.Row]:
+def list_campaigns(c, store_id: int = 0, type_: str = "",
+                   status: str = "") -> list:
     w, p = ["1=1"], []
     if store_id:
         w.append("k.store_id=?"); p.append(store_id)
@@ -113,15 +258,15 @@ def list_campaigns(c: sqlite3.Connection, store_id: int = 0, type_: str = "",
         WHERE {' AND '.join(w)} ORDER BY spend_7d DESC""", p).fetchall()
 
 
-def get_campaign(c: sqlite3.Connection, cid: int) -> Optional[sqlite3.Row]:
+def get_campaign(c, cid: int):
     return c.execute("""SELECT k.*, s.nama AS nama_toko, s.autopilot_on, s.plafon_harian,
                                s.shop_id_ext
                         FROM campaigns k JOIN stores s ON s.id=k.store_id WHERE k.id=?""",
                      (cid,)).fetchone()
 
 
-# ---------------------------------------------------------------- performa
-def put_perf(c: sqlite3.Connection, campaign_id: int, tanggal: str, spend: float, gmv: float,
+# ================================================================ performa
+def put_perf(c, campaign_id: int, tanggal: str, spend: float, gmv: float,
              impresi: int = 0, klik: int = 0, konversi: float = 0) -> None:
     c.execute("""INSERT INTO perf_daily(campaign_id, tanggal, spend, gmv, impresi, klik, konversi)
                  VALUES (?,?,?,?,?,?,?)
@@ -131,7 +276,7 @@ def put_perf(c: sqlite3.Connection, campaign_id: int, tanggal: str, spend: float
               (campaign_id, tanggal, spend, gmv, impresi, klik, konversi))
 
 
-def metrik_jendela(c: sqlite3.Connection, campaign_id: int, window_days: int,
+def metrik_jendela(c, campaign_id: int, window_days: int,
                    geser: int = 0) -> Dict[str, float]:
     """Agregat metrik selama window_days terakhir. geser=window → periode sebelumnya."""
     today = date.today()
@@ -150,18 +295,19 @@ def metrik_jendela(c: sqlite3.Connection, campaign_id: int, window_days: int,
             "biaya_konversi": (spend / r["konversi"]) if r["konversi"] else 0.0}
 
 
-def tren(c: sqlite3.Connection, days: int = 14, store_id: int = 0) -> List[Dict[str, Any]]:
+def tren(c, days: int = 14, store_id: int = 0) -> List[Dict[str, Any]]:
     w = "AND k.store_id=?" if store_id else ""
     p: List[Any] = [store_id] if store_id else []
     return [dict(r) for r in c.execute(f"""
         SELECT p.tanggal, SUM(p.spend) AS spend, SUM(p.gmv) AS gmv, SUM(p.klik) AS klik
         FROM perf_daily p JOIN campaigns k ON k.id=p.campaign_id
         WHERE p.tanggal >= date('now', ?) {w}
-        GROUP BY p.tanggal ORDER BY p.tanggal""", (f"-{days - 1} day",) + tuple(p)).fetchall()]
+        GROUP BY p.tanggal ORDER BY p.tanggal""",
+        (f"-{days - 1} day",) + tuple(p)).fetchall()]
 
 
-# ---------------------------------------------------------------- rules & decisions
-def simpan_rule(c: sqlite3.Connection, data: Dict[str, Any], rule_id: int = 0) -> int:
+# ================================================================ rules & decisions
+def simpan_rule(c, data: Dict[str, Any], rule_id: int = 0) -> int:
     kolom = ["nama", "enabled", "priority", "scope_type", "scope_value", "metric",
              "window_days", "comparator", "threshold", "cond2_metric", "cond2_comparator",
              "cond2_threshold", "cond2_window", "action", "action_value", "budget_floor",
@@ -176,23 +322,23 @@ def simpan_rule(c: sqlite3.Connection, data: Dict[str, Any], rule_id: int = 0) -
     return cur.lastrowid
 
 
-def get_rule(c: sqlite3.Connection, rid: int) -> Optional[sqlite3.Row]:
+def get_rule(c, rid: int):
     return c.execute("SELECT * FROM rules WHERE id=?", (rid,)).fetchone()
 
 
-def list_rules(c: sqlite3.Connection) -> List[sqlite3.Row]:
+def list_rules(c) -> list:
     return c.execute("SELECT * FROM rules ORDER BY priority, id").fetchall()
 
 
-def aksi_hari_ini(c: sqlite3.Connection, rule_id: int, campaign_id: int) -> int:
+def aksi_hari_ini(c, rule_id: int, campaign_id: int) -> int:
     return c.execute("""SELECT COUNT(*) AS n FROM decisions
                         WHERE rule_id=? AND campaign_id=? AND status='executed'
                           AND date(created_at)=date('now','localtime')""",
                      (rule_id, campaign_id)).fetchone()["n"]
 
 
-def catat(c: sqlite3.Connection, store_id: int, campaign_id: Optional[int],
-          rule_id: Optional[int], mode_: str, kondisi: str, nilai_metrik: str,
+def catat(c, store_id: int, campaign_id, rule_id,
+          mode_: str, kondisi: str, nilai_metrik: str,
           aksi: str, nilai_aksi: str, status: str, detail: str = "") -> int:
     return c.execute("""INSERT INTO decisions(store_id, campaign_id, rule_id, mode, kondisi,
                         nilai_metrik, aksi, nilai_aksi, status, detail)
@@ -201,18 +347,20 @@ def catat(c: sqlite3.Connection, store_id: int, campaign_id: Optional[int],
                       aksi, nilai_aksi, status, detail)).lastrowid
 
 
-def count_decisions(c: sqlite3.Connection, store_id: int = 0,
+def count_decisions(c, store_id: int = 0,
                     status: str = "") -> int:
     w, p = ["1=1"], []
     if store_id:
         w.append("d.store_id=?"); p.append(store_id)
     if status:
         w.append("d.status=?"); p.append(status)
-    return c.execute(f"SELECT COUNT(*) AS n FROM decisions d WHERE {' AND '.join(w)}", p).fetchone()["n"]
+    return c.execute(
+        f"SELECT COUNT(*) AS n FROM decisions d WHERE {' AND '.join(w)}", p
+    ).fetchone()["n"]
 
 
-def list_decisions(c: sqlite3.Connection, limit: int = 100, store_id: int = 0,
-                   status: str = "", offset: int = 0) -> List[sqlite3.Row]:
+def list_decisions(c, limit: int = 100, store_id: int = 0,
+                   status: str = "", offset: int = 0) -> list:
     w, p = ["1=1"], []
     if store_id:
         w.append("d.store_id=?"); p.append(store_id)
@@ -224,11 +372,14 @@ def list_decisions(c: sqlite3.Connection, limit: int = 100, store_id: int = 0,
         LEFT JOIN stores s ON s.id=d.store_id
         LEFT JOIN campaigns k ON k.id=d.campaign_id
         LEFT JOIN rules r ON r.id=d.rule_id
-        WHERE {' AND '.join(w)} ORDER BY d.id DESC LIMIT ? OFFSET ?""", p + [limit, offset]).fetchall()
+        WHERE {' AND '.join(w)} ORDER BY d.id DESC LIMIT ? OFFSET ?""",
+        p + [limit, offset]).fetchall()
 
 
-def pending_count(c: sqlite3.Connection) -> int:
-    return c.execute("SELECT COUNT(*) AS n FROM decisions WHERE status='pending'").fetchone()["n"]
+def pending_count(c) -> int:
+    return c.execute(
+        "SELECT COUNT(*) AS n FROM decisions WHERE status='pending'"
+    ).fetchone()["n"]
 
 
 def now_str() -> str:
