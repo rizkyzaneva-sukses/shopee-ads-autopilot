@@ -24,24 +24,24 @@
   </div>
 
   <div class="kartu">
-    <b>Mesin evaluasi & koneksi</b><br><br>
+    <b>Mesin evaluasi &amp; koneksi</b><br><br>
     <form method="post" action="/settings">
-      <span class="lbl">Interval siklus otomatis (menit)</span>
-      <input name="interval_menit" type="number" min="5" max="720" value="{{ s['interval_menit'] or 60 }}" style="width:120px">
-      <span style="color:#6b7280;font-size:12px">— engine berjalan di background tiap interval ini (lihat run.py)</span>
-      <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0">
-      <span class="lbl">Status kredensial API</span>
+      <label class="lbl" for="interval_menit">Interval siklus otomatis (menit)</label>
+      <input id="interval_menit" name="interval_menit" type="number" min="5" max="720" value="{{ s['interval_menit'] or 60 }}" style="width:120px">
+      <span style="color:var(--abu);font-size:12px">— engine berjalan di background tiap interval ini (lihat run.py)</span>
+      <hr style="border:0;border-top:1px solid var(--garis);margin:14px 0">
+      <label class="lbl">Status kredensial API</label>
       {% if env_ready %}
       <div class="badge b-hijau" style="font-size:12px;padding:6px 12px">✓ SHOPEE_PARTNER_ID/KEY terisi — {{ 'production' if 'shopeemobile' in base_url else 'sandbox/test' }}</div>
       {% else %}
       <div class="badge b-merah" style="font-size:12px;padding:6px 12px">✗ SHOPEE_PARTNER_ID/KEY belum di-set</div>
-      <p style="color:#6b7280;font-size:13px">Salin <code>.env.example</code> → <code>.env</code>, isi kredensial dari Shopee Open Platform, lalu restart. Tanpa ini, mode LIVE tidak bisa berjalan (mode DEMO tetap jalan penuh).</p>
+      <p style="color:var(--abu);font-size:13px">Salin <code>.env.example</code> → <code>.env</code>, isi kredensial dari Shopee Open Platform, lalu restart. Tanpa ini, mode LIVE tidak bisa berjalan (mode DEMO tetap jalan penuh).</p>
       {% endif %}
-      <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0">
-      <span class="lbl">Telegram Bot Token</span>
-      <input name="tg_token" value="{{ s['tg_token'] }}" placeholder="123456:AA..." style="width:100%">
-      <span class="lbl" style="margin-top:8px">Telegram Chat ID</span>
-      <input name="tg_chat_id" value="{{ s['tg_chat_id'] }}" placeholder="123456789" style="width:100%">
+      <hr style="border:0;border-top:1px solid var(--garis);margin:14px 0">
+      <label class="lbl" for="tg_token">Telegram Bot Token</label>
+      <input id="tg_token" name="tg_token" type="password" value="{{ s['tg_token'] }}" placeholder="123456:AA..." style="width:100%">
+      <label class="lbl" for="tg_chat_id" style="margin-top:8px">Telegram Chat ID</label>
+      <input id="tg_chat_id" name="tg_chat_id" value="{{ s['tg_chat_id'] }}" placeholder="123456789" style="width:100%">
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
         <button type="submit" class="btn-hijau">💾 Simpan settings</button>
       </div>
@@ -65,7 +65,7 @@
   <b>Penjadwal di PC Windows 24 jam</b>
   <ul style="margin-bottom:0;color:#374151;line-height:1.9">
     <li>Default: <code>python run.py</code> menyalakan server web <b>dan</b> scheduler thread otomatis — biarkan window ini terbuka / jalankan sebagai service.</li>
-    <li>Alternatif Windows Task Scheduler: jadwalkan <code>python scripts\run_engine_once.py</code> tiap N menit (lihat README bagian “Penjadwalan”).</li>
+    <li>Alternatif Windows Task Scheduler: jadwalkan <code>python scripts\run_engine_once.py</code> tiap N menit (lihat README bagian "Penjadwalan").</li>
     <li>Database: file SQLite <code>autopilot.db</code> di folder aplikasi — cukup copy untuk backup.</li>
   </ul>
 </div>

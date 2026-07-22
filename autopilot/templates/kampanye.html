@@ -22,8 +22,9 @@
       <button type="submit" class="btn-min">Filter</button>
     </form>
     <span style="flex:1"></span>
-    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">↻ Sinkron + Evaluasi</button></form>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Jalankan Siklus</button></form>
   </div>
+  <div class="table-wrap">
   <table>
     <tr><th>Toko</th><th>Kampanye</th><th>Tipe</th><th>Bidding</th><th>Status</th>
         <th class="num">Budget/hari</th><th class="num">ROAS target</th>
@@ -42,22 +43,23 @@
       <td class="num">{{ '%.2f'|format(k['roas_target']) }}×</td>
       <td class="num">{{ k['spend_7d']|idr }}</td>
       <td class="num">{{ k['gmv_7d']|idr }}</td>
-      <td class="num" style="font-weight:700;color:{{ '#16a34a' if roas>=2 else '#d97706' if roas>=1.5 else '#dc2626' }}">{{ '%.2f'|format(roas) }}×</td>
+      <td class="num {{ 'roas-baik' if roas>=2 else 'roas-cukup' if roas>=1.5 else 'roas-buruk' }}">{{ '%.2f'|format(roas) }}×</td>
     </tr>
     {% else %}
-    <tr><td colspan="10" style="padding:28px;text-align:center;color:#6b7280">
+    <tr><td colspan="10" style="padding:28px;text-align:center;color:var(--abu)">
       Belum ada kampanye. Jalankan <code>python scripts/seed_demo.py</code> (data demo), atau hubungkan toko nyata di halaman <a href="/toko">Toko</a>.
     </td></tr>
     {% endfor %}
   </table>
+  </div>
 </div>
 
 <div class="kartu">
   <b>Membaca tabel ini</b>
   <ul style="margin-bottom:0;color:#374151;line-height:1.9">
     <li><span class="badge b-biru">MANUAL</span> iklan produk individual — kontrol penuh (budget, status, bid keyword bila bidding <i>manual</i>).</li>
-    <li><span class="badge b-ungu">GMS</span> GMV Max / iklan grup — autopilot mengatur di level kampanye & item (budget, ROAS target).</li>
-    <li><span class="badge b-abu">AUTO</span> Iklan Produk Otomatis — API hanya mengizinkan ubah <b>budget & tanggal</b>, tanpa kontrol bid; endpointnya dijadwalkan Shopee untuk dimatikan. Autopilot menolak menulis ke tipe ini dan menyarankan migrasi ke manual auto-bidding.</li>
+    <li><span class="badge b-ungu">GMS</span> GMV Max / iklan grup — autopilot mengatur di level kampanye &amp; item (budget, ROAS target).</li>
+    <li><span class="badge b-abu">AUTO</span> Iklan Produk Otomatis — API hanya mengizinkan ubah <b>budget &amp; tanggal</b>, tanpa kontrol bid; endpointnya dijadwalkan Shopee untuk dimatikan. Autopilot menolak menulis ke tipe ini dan menyarankan migrasi ke manual auto-bidding.</li>
     <li>Tag <code>[baik]</code> / <code>[boros]</code> pada nama hanya penanda <b>data demo</b> untuk memicu skenario aturan.</li>
   </ul>
 </div>

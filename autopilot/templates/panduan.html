@@ -23,8 +23,8 @@
 </div>
 
 <!-- ===== 1 ===== -->
-<div class="kartu" id="s1">
-<h2>1. Apa itu Shopee Ads Autopilot?</h2>
+<details class="kartu" id="s1" open>
+<summary style="cursor:pointer"><h2 style="display:inline">1. Apa itu Shopee Ads Autopilot?</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <p><b>Shopee Ads Autopilot</b> adalah aplikasi internal untuk mengotomatiskan pengelolaan iklan Shopee di banyak toko/cabang. Aplikasi ini berjalan di PC Windows Anda sendiri — bukan layanan cloud, bukan SaaS berlangganan.</p>
 <p><b>Untuk siapa aplikasi ini?</b></p>
 <ul>
@@ -40,11 +40,11 @@
 <tr><td><b>Toko didukung</b></td><td>&gt;5 cabang dalam satu dashboard</td></tr>
 <tr><td><b>Bahasa antarmuka</b></td><td>Bahasa Indonesia</td></tr>
 </table>
-</div>
+</details>
 
 <!-- ===== 2 ===== -->
-<div class="kartu" id="s2">
-<h2>2. Instalasi &amp; Quick Start (Mode DEMO)</h2>
+<details class="kartu" id="s2" open>
+<summary style="cursor:pointer"><h2 style="display:inline">2. Instalasi &amp; Quick Start (Mode DEMO)</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <p>Anda hanya butuh <b>Python 3.10+</b> yang terinstall di Windows. Tidak perlu Docker, Node.js, atau tools tambahan.</p>
 
 <h3>Langkah 1 — Install Python</h3>
@@ -69,11 +69,11 @@ python -m pip install -r requirements.txt</pre>
 <b>Untuk menjalankan ulang demo dari nol:</b><br>
 <code>python scripts\seed_demo.py --reset</code>
 </div>
-</div>
+</details>
 
 <!-- ===== 3 ===== -->
-<div class="kartu" id="s3">
-<h2>3. Tur Setiap Halaman Dashboard</h2>
+<details class="kartu" id="s3" open>
+<summary style="cursor:pointer"><h2 style="display:inline">3. Tur Setiap Halaman Dashboard</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <p>Dashboard terdiri dari 6 halaman utama. Akses semua halaman dari <b>menu navigasi</b> di bagian atas.</p>
 
 <h3>3.1 Monitoring</h3>
@@ -152,11 +152,11 @@ python -m pip install -r requirements.txt</pre>
 <tr><td><b>Telegram</b></td><td>Bot Token + Chat ID + tombol uji</td></tr>
 </table>
 <p style="color:#6b7280;font-style:italic">[screenshot: halaman Settings]</p>
-</div>
+</details>
 
 <!-- ===== 4 ===== -->
-<div class="kartu" id="s4">
-<h2>4. Cara Membuat Aturan Step-by-Step</h2>
+<details class="kartu" id="s4" open>
+<summary style="cursor:pointer"><h2 style="display:inline">4. Cara Membuat Aturan Step-by-Step</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <h3>Langkah 1 — Buka halaman Aturan</h3>
 <p>Klik menu <b>Aturan</b> di navigasi atas.</p>
@@ -218,11 +218,11 @@ python -m pip install -r requirements.txt</pre>
 <tr><td><b>Pengingat migrasi</b></td><td>Tipe AUTO</td><td>Spend 7h &gt; Rp50rb</td><td>🔔 Notif saja</td><td>1×/hari</td><td>90</td><td>Pengingat migrasi</td></tr>
 <tr><td><b>ROAS turun tajam</b></td><td>Semua</td><td>ROAS turun &gt; 30% vs periode blm</td><td>Budget −20%</td><td>Lantai Rp30rb, 2×/hari</td><td>15</td><td>Penurunan mendadak</td></tr>
 </table>
-</div>
+</details>
 
 <!-- ===== 5 ===== -->
-<div class="kartu" id="s5">
-<h2>5. Panduan Mengisi Prioritas</h2>
+<details class="kartu" id="s5" open>
+<summary style="cursor:pointer"><h2 style="display:inline">5. Panduan Mengisi Prioritas</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <p>Prioritas menentukan <b>urutan evaluasi</b> aturan. Angka kecil = dievaluasi duluan.</p>
 <table>
 <tr><th>Jenis aturan</th><th>Isi prioritas</th><th>Contoh Anda</th></tr>
@@ -239,11 +239,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 </div>
 
 <p>💡 <b>Tips:</b> Mulai dengan angka "longgar" (misal pause=5, rem=10, gas=20, notif=90). Sesuaikan nanti berdasarkan hasil di Log.</p>
-</div>
+</details>
 
 <!-- ===== 6 ===== -->
-<div class="kartu" id="s6">
-<h2>6. Membaca Log Keputusan</h2>
+<details class="kartu" id="s6" open>
+<summary style="cursor:pointer"><h2 style="display:inline">6. Membaca Log Keputusan</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <h3>Status dalam Log</h3>
 <table>
@@ -268,11 +268,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 <tr><td><b>blocked</b></td><td>6</td><td>Dibatasi pengaman</td></tr>
 <tr><td><b>pending</b></td><td>2</td><td>Menunggu persetujuan Anda</td></tr>
 </table>
-</div>
+</details>
 
 <!-- ===== 7 ===== -->
-<div class="kartu" id="s7">
-<h2>7. Setup Telegram &amp; Kirim Pesan Uji</h2>
+<details class="kartu" id="s7" open>
+<summary style="cursor:pointer"><h2 style="display:inline">7. Setup Telegram &amp; Kirim Pesan Uji</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <h3>Langkah 1 — Buat Bot Telegram</h3>
 <ol>
@@ -299,11 +299,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 
 <h3>Langkah 4 — Kirim Pesan Uji</h3>
 <p>Klik tombol <b>✈️ Kirim pesan uji Telegram</b>. Pesan berhasil: <code>✅ Uji Telegram dari Ads Autopilot berhasil!</code></p>
-</div>
+</details>
 
 <!-- ===== 8 ===== -->
-<div class="kartu" id="s8">
-<h2>8. Menjalankan 24 Jam di PC Windows</h2>
+<details class="kartu" id="s8" open>
+<summary style="cursor:pointer"><h2 style="display:inline">8. Menjalankan 24 Jam di PC Windows</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <h3>Cara Utama: Server + Scheduler Bawaan</h3>
 <pre>python run.py</pre>
@@ -322,11 +322,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 
 <h3>Backup</h3>
 <p>Cukup salin file <code>autopilot.db</code>. Jika mode LIVE, juga backup folder <code>tokens/</code>.</p>
-</div>
+</details>
 
 <!-- ===== 9 ===== -->
-<div class="kartu" id="s9">
-<h2>9. Roadmap dari DEMO ke LIVE</h2>
+<details class="kartu" id="s9" open>
+<summary style="cursor:pointer"><h2 style="display:inline">9. Roadmap dari DEMO ke LIVE</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <div class="note" style="background:#eff6ff;border-color:#93c5fd;color:#1e40af">
 🗺️ <b>Roadmap Anda setelah ini</b>
@@ -349,11 +349,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 <li>Verifikasi field Tingkat 2 — bilang ke asisten AI saat sampai tahap ini</li>
 <li>Baru aktifkan mode LIVE (aturan baru tetap otomatis dry-run 24 jam dulu)</li>
 </ol>
-</div>
+</details>
 
 <!-- ===== 10 ===== -->
-<div class="kartu" id="s10">
-<h2>10. Jujur soal API</h2>
+<details class="kartu" id="s10" open>
+<summary style="cursor:pointer"><h2 style="display:inline">10. Jujur soal API</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <p>Shopee Ads Autopilot menggunakan <b>Shopee Open Platform API v2 resmi</b>. Ada 3 tingkat verifikasi:</p>
 
 <h3>Tingkat 1 — Terkonfirmasi dari Dokumentasi Resmi</h3>
@@ -379,11 +379,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 <li><b>DRY-RUN 24 jam</b> per aturan baru</li>
 <li><b>Kill-switch</b>, <b>plafon per toko</b>, <b>lantai/plafon per kampanye</b>, <b>maks aksi/hari</b></li>
 </ul>
-</div>
+</details>
 
 <!-- ===== 11 ===== -->
-<div class="kartu" id="s11">
-<h2>11. Troubleshooting &amp; FAQ</h2>
+<details class="kartu" id="s11" open>
+<summary style="cursor:pointer"><h2 style="display:inline">11. Troubleshooting &amp; FAQ</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 
 <h3>Q1: Server tidak mau nyala?</h3>
 <ol>
@@ -438,11 +438,11 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 <li>Minta konfirmasi</li>
 <li>Log Keputusan permanen</li>
 </ol>
-</div>
+</details>
 
 <!-- ===== 12 ===== -->
-<div class="kartu" id="s12">
-<h2>12. Glosarium Iklan untuk Pemula</h2>
+<details class="kartu" id="s12" open>
+<summary style="cursor:pointer"><h2 style="display:inline">12. Glosarium Iklan untuk Pemula</h2> <span style="color:var(--abu);font-size:13px">▾</span></summary>
 <table>
 <tr><th>Istilah</th><th>Arti</th><th>Contoh</th></tr>
 <tr><td><b>ROAS</b></td><td><i>Return on Ad Spend</i> — berapa rupiah GMV dari setiap rupiah spend. ROAS 3× = spend Rp10rb → GMV Rp30rb.</td><td>"ROAS 7 hari: 2.5×"</td></tr>
@@ -463,7 +463,7 @@ Karena aturan dievaluasi sesuai urutan prioritas — aturan dengan angka kecil d
 <tr><td><b>Dry-run</b></td><td>Mode percobaan — evaluasi &amp; catat, belum eksekusi.</td><td>"Dry-run 24 jam dulu"</td></tr>
 <tr><td><b>Throttle</b></td><td>Pembatasan aksi/hari per kampanye.</td><td>"Di-throttle karena sudah maks"</td></tr>
 </table>
-</div>
+</details>
 
 <div class="kartu" style="text-align:center;color:#6b7280">
 <p><b>Catatan:</b> Aplikasi ini bukan produk resmi Shopee. Gunakan sesuai Syarat &amp; Ketentuan Shopee Open Platform. Semua aksi tulis hanya via API resmi, dan mode DEMO tidak menyentuh saldo iklan Anda sama sekali.</p>

@@ -137,10 +137,16 @@ def rule_hapus(rule_id: int):
 
 # ================================================================ LOG KEPUTUSAN
 @app.get("/log", response_class=HTMLResponse)
-def log_page(request: Request, status: str = "", store: int = 0):
+def log_page(request: Request, status: str = "", store: int = 0, page: int = 1):
     c = db.conn()
-    return _render(request, "log", decisions=db.list_decisions(c, 200, store or None, status),
-                   stores=db.list_stores(c), store=store, status=status)
+    per_page = 50
+    total = db.count_decisions(c, store or None, status)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+    offset = (page - 1) * per_page
+    return _render(request, "log", decisions=db.list_decisions(c, per_page, store or None, status, offset),
+                   stores=db.list_stores(c), store=store, status=status,
+                   page=page, total_pages=total_pages)
 
 
 @app.post("/log/{decision_id}/setujui")
@@ -224,7 +230,13 @@ def kontrol_mode(mode_: str):
 # ================================================================ PANDUAN
 @app.get("/panduan", response_class=HTMLResponse)
 def panduan_page(request: Request):
-    return _render(request, "panduan")
+    c = db.conn()
+    base = {"page": "panduan", "msg": request.query_params.get("msg", ""),
+            "bagan": {"pending": db.pending_count(c), "kill": db.is_kill(c),
+                      "mode": db.mode(c)}}
+    resp = templates.TemplateResponse(request, "panduan", base)
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 # ================================================================ SETTINGS

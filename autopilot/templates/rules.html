@@ -9,15 +9,17 @@
 <div class="kartu">
   <div class="toolbar" style="margin:0"><b>Aturan ({{ rules|length }})</b>
     <span style="flex:1"></span>
-    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Jalankan Evaluasi Sekarang</button></form>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Jalankan Siklus</button></form>
   </div>
+  <div class="table-wrap">
   <table>
     <tr><th></th><th>Nama</th><th>Prioritas</th><th>Scope</th><th>Kondisi</th><th>Aksi</th><th>Batas aman</th><th>Dry-run s/d</th><th></th></tr>
     {% for r in rules %}
     <tr style="{{ 'opacity:.55' if not r['enabled'] }}">
       <td>
         <form method="post" action="/rules/{{ r['id'] }}/toggle" class="inline">
-          <button type="submit" class="btn-min {{ 'btn-hijau' if r['enabled'] else 'btn-abu' }}" title="toggle aktif/nonaktif">
+          <button type="submit" class="btn-min {{ 'btn-hijau' if r['enabled'] else 'btn-abu' }}" title="toggle aktif/nonaktif"
+            aria-label="Toggle aturan {{ r.nama }}">
             {{ 'ON' if r['enabled'] else 'OFF' }}</button>
         </form>
       </td>
@@ -30,16 +32,17 @@
       </td>
       <td><span class="badge {{ 'b-merah' if r['action']=='pause' else 'b-hijau' if r['action'] in ('budget_up','resume') else 'b-kuning' if r['action']=='budget_down' else 'b-biru' }}">
         {{ {'budget_up':'Budget +','budget_down':'Budget −','pause':'⏸ Pause','resume':'▶ Resume','bid_up':'Bid +','bid_down':'Bid −','notify':'🔔 Notif'}[r['action']] }}{{ '{}%'.format(r['action_value']|g) if r['action'] in ('budget_up','budget_down','bid_up','bid_down') }}</span></td>
-      <td style="font-size:12px;color:#6b7280;white-space:normal;max-width:180px">
+      <td style="font-size:12px;color:var(--abu);white-space:normal;max-width:180px">
         lantai {{ r['budget_floor']|idr }}{% if r['budget_ceiling']>0 %} · plafon {{ r['budget_ceiling']|idr }}{% endif %} · maks {{ r['max_actions_day'] }}×/hari
       </td>
       <td style="font-size:12px">{{ r['dryrun_until'][:16] if r['dryrun_until'] else '—' }}</td>
-      <td><a href="/rules?edit={{ r['id'] }}">ubah</a> ·
-        <form method="post" action="/rules/{{ r['id'] }}/hapus" class="inline" onsubmit="return confirm('Hapus aturan ini?')">
+      <td style="white-space:normal"><a href="/rules?edit={{ r['id'] }}">ubah</a>
+        <form method="post" action="/rules/{{ r['id'] }}/hapus" class="inline" style="margin-left:8px" onsubmit="return confirm('Hapus aturan: ' + {{ r.nama | tojson }} + '?')">
           <button type="submit" class="btn-min btn-merah">hapus</button></form></td>
     </tr>
-    {% else %}<tr><td colspan="9" style="padding:24px;text-align:center;color:#6b7280">Belum ada aturan — tambah di form bawah.</td></tr>{% endfor %}
+    {% else %}<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--abu)">Belum ada aturan — tambah di form bawah.</td></tr>{% endfor %}
   </table>
+  </div>
 </div>
 
 <div class="kartu">
@@ -48,60 +51,60 @@
     {% if edit %}<input type="hidden" name="rule_id" value="{{ edit['id'] }}">
     <input type="hidden" name="dryrun_until" value="{{ edit['dryrun_until'] }}">{% endif %}
     <div class="grid g3">
-      <div><span class="lbl">Nama aturan</span><input name="nama" style="width:100%" required
+      <div><label class="lbl" for="f_nama">Nama aturan</label><input id="f_nama" name="nama" style="width:100%" required
         value="{{ edit['nama'] if edit else '' }}" placeholder="mis. Rem kampanye boncos"></div>
-      <div><span class="lbl">Berlaku untuk</span>
-        <select name="scope_type" id="scope_type" style="width:100%" onchange="document.getElementById('scope_value_wrap').style.display = ['store','campaign','type'].includes(this.value)?'block':'none'">
+      <div><label class="lbl" for="scope_type">Berlaku untuk</label>
+        <select name="scope_type" id="scope_type" style="width:100%" onchange="var v=this.value;document.getElementById('scope_value_wrap').style.display=['store','campaign','type'].includes(v)?'block':'none';document.querySelectorAll('#scope_value_wrap optgroup').forEach(function(g){g.style.display=(v==='store'&&g.label==='Toko')||(v==='campaign'&&g.label==='Kampanye')||(v==='type'&&g.label==='Tipe')?'':'none'});">
           <option value="all" {{ 'selected' if edit and edit['scope_type']=='all' }}>Semua kampanye</option>
           <option value="store" {{ 'selected' if edit and edit['scope_type']=='store' }}>Toko tertentu…</option>
           <option value="campaign" {{ 'selected' if edit and edit['scope_type']=='campaign' }}>Kampanye tertentu…</option>
           <option value="type" {{ 'selected' if edit and edit['scope_type']=='type' }}>Hanya tipe tertentu</option>
         </select></div>
-      <div id="scope_value_wrap" style="{{ 'display:none' if not edit or edit['scope_type']=='all' }}"><span class="lbl">Pilih</span>
-        <select name="scope_value" style="width:100%">
+      <div id="scope_value_wrap" style="{{ 'display:none' if not edit or edit['scope_type']=='all' }}"><label class="lbl" for="scope_value">Pilih</label>
+        <select name="scope_value" id="scope_value" style="width:100%">
           <option value="">—</option>
           <optgroup label="Toko">{% for s in stores %}<option value="{{ s['id'] }}" {{ 'selected' if edit and edit['scope_type']=='store' and edit['scope_value']|int==s['id'] }}>{{ s['nama'] }}</option>{% endfor %}</optgroup>
           <optgroup label="Kampanye">{% for k in kampanye %}<option value="{{ k['id'] }}" {{ 'selected' if edit and edit['scope_type']=='campaign' and edit['scope_value']|int==k['id'] }}>{{ k['nama_toko'] }} · {{ k['nama'][:30] }}</option>{% endfor %}</optgroup>
           <optgroup label="Tipe"><option value="manual" {{ 'selected' if edit and edit['scope_value']=='manual' }}>MANUAL (individual)</option><option value="gms" {{ 'selected' if edit and edit['scope_value']=='gms' }}>GMS/Grup</option><option value="auto" {{ 'selected' if edit and edit['scope_value']=='auto' }}>AUTO (produk otomatis)</option></optgroup>
         </select></div>
-      <div><span class="lbl">Prioritas (kecil = duluan)</span><input name="priority" type="number" style="width:100%" value="{{ edit['priority'] if edit else 50 }}"></div>
+      <div><label class="lbl" for="f_priority">Prioritas (kecil = duluan)</label><input id="f_priority" name="priority" type="number" style="width:100%" value="{{ edit['priority'] if edit else 50 }}"></div>
     </div><br>
     <div class="grid g4">
-      <div><span class="lbl">Metrik</span><select name="metric" style="width:100%">
+      <div><label class="lbl" for="f_metric">Metrik</label><select id="f_metric" name="metric" style="width:100%">
         {% for m in ['roas','spend','gmv','ctr','konversi','biaya_konversi'] %}
         <option value="{{ m }}" {{ 'selected' if edit and edit['metric']==m }}>{{ {'roas':'ROAS','spend':'Spend','gmv':'GMV','ctr':'CTR','konversi':'Konversi','biaya_konversi':'Biaya/konversi'}[m] }}</option>{% endfor %}
       </select></div>
-      <div><span class="lbl">Jendela (hari)</span><select name="window_days" style="width:100%">
+      <div><label class="lbl" for="f_window">Jendela (hari)</label><select id="f_window" name="window_days" style="width:100%">
         {% for w in [1,3,7,14,30] %}<option value="{{ w }}" {{ 'selected' if edit and edit['window_days']==w }}>{{ w }}</option>{% endfor %}</select></div>
-      <div><span class="lbl">Pembanding</span><select name="comparator" style="width:100%">
+      <div><label class="lbl" for="f_comp">Pembanding</label><select id="f_comp" name="comparator" style="width:100%">
         {% for cc,t in [('lt','< (kurang dari)'),('gt','> (lebih dari)'),('gte','≥'),('lte','≤'),('drop','turun > X% vs periode sblm'),('rise','naik > X% vs periode sblm')] %}
         <option value="{{ cc }}" {{ 'selected' if edit and edit['comparator']==cc }}>{{ t }}</option>{% endfor %}</select></div>
-      <div><span class="lbl">Nilai ambang</span><input name="threshold" type="number" step="any" style="width:100%" value="{{ edit['threshold'] if edit else 1.5 }}"></div>
+      <div><label class="lbl" for="f_threshold">Nilai ambang</label><input id="f_threshold" name="threshold" type="number" step="any" required min="0" style="width:100%" value="{{ edit['threshold'] if edit else 1.5 }}"></div>
     </div><br>
     <div class="grid g4">
-      <div><span class="lbl">Kondisi ke-2 (opsional)</span><select name="cond2_metric" style="width:100%">
+      <div><label class="lbl" for="f_cond2m">Kondisi ke-2 (opsional)</label><select id="f_cond2m" name="cond2_metric" style="width:100%">
         <option value="">— tidak ada —</option>
         {% for m in ['roas','spend','gmv','ctr','konversi','biaya_konversi'] %}
         <option value="{{ m }}" {{ 'selected' if edit and edit['cond2_metric']==m }}>{{ m }}</option>{% endfor %}</select></div>
-      <div><span class="lbl">Pembanding ke-2</span><select name="cond2_comparator" style="width:100%">
+      <div><label class="lbl" for="f_cond2c">Pembanding ke-2</label><select id="f_cond2c" name="cond2_comparator" style="width:100%">
         {% for cc in ['lt','gt','gte','lte'] %}<option value="{{ cc }}" {{ 'selected' if edit and edit['cond2_comparator']==cc }}>{{ {'lt':'<','gt':'>','gte':'≥','lte':'≤'}[cc] }}</option>{% endfor %}</select></div>
-      <div><span class="lbl">Ambang ke-2</span><input name="cond2_threshold" type="number" step="any" style="width:100%" value="{{ edit['cond2_threshold'] if edit else 0 }}"></div>
-      <div><span class="lbl">Jendela ke-2 (hari)</span><input name="cond2_window" type="number" style="width:100%" value="{{ edit['cond2_window'] if edit else 7 }}"></div>
+      <div><label class="lbl" for="f_cond2t">Ambang ke-2</label><input id="f_cond2t" name="cond2_threshold" type="number" step="any" style="width:100%" value="{{ edit['cond2_threshold'] if edit else 0 }}"></div>
+      <div><label class="lbl" for="f_cond2w">Jendela ke-2 (hari)</label><input id="f_cond2w" name="cond2_window" type="number" style="width:100%" value="{{ edit['cond2_window'] if edit else 7 }}"></div>
     </div><br>
     <div class="grid g4">
-      <div><span class="lbl">Aksi</span><select name="action" style="width:100%">
+      <div><label class="lbl" for="f_action">Aksi</label><select id="f_action" name="action" style="width:100%">
         {% for a,t in [('budget_up','Naikkan budget'),('budget_down','Turunkan budget'),('pause','⏸ Pause kampanye'),('resume','▶ Resume kampanye'),('bid_up','Naikkan bid keyword'),('bid_down','Turunkan bid keyword'),('notify','🔔 Notifikasi saja')] %}
         <option value="{{ a }}" {{ 'selected' if edit and edit['action']==a }}>{{ t }}</option>{% endfor %}</select></div>
-      <div><span class="lbl">Besar aksi (%)</span><input name="action_value" type="number" step="any" style="width:100%" value="{{ edit['action_value'] if edit else 20 }}"></div>
-      <div><span class="lbl">Lantai budget (Rp)</span><input name="budget_floor" type="number" style="width:100%" value="{{ edit['budget_floor']|int if edit else 20000 }}"></div>
-      <div><span class="lbl">Plafon budget per kampanye (Rp, 0=∞)</span><input name="budget_ceiling" type="number" style="width:100%" value="{{ edit['budget_ceiling']|int if edit else 0 }}"></div>
+      <div><label class="lbl" for="f_av">Besar aksi (%)</label><input id="f_av" name="action_value" type="number" step="any" required min="0" max="100" style="width:100%" value="{{ edit['action_value'] if edit else 20 }}"></div>
+      <div><label class="lbl" for="f_bf">Lantai budget (Rp)</label><input id="f_bf" name="budget_floor" type="number" required min="0" style="width:100%" value="{{ edit['budget_floor']|int if edit else 20000 }}"></div>
+      <div><label class="lbl" for="f_bc">Plafon budget per kampanye (Rp, 0=∞)</label><input id="f_bc" name="budget_ceiling" type="number" style="width:100%" value="{{ edit['budget_ceiling']|int if edit else 0 }}"></div>
     </div><br>
     <div class="grid g4">
-      <div><span class="lbl">Maks aksi/hari per kampanye</span><input name="max_actions_day" type="number" style="width:100%" value="{{ edit['max_actions_day'] if edit else 2 }}"></div>
-      <div><span class="lbl">Notifikasi</span><select name="notify" style="width:100%">
+      <div><label class="lbl" for="f_max">Maks aksi/hari per kampanye</label><input id="f_max" name="max_actions_day" type="number" style="width:100%" value="{{ edit['max_actions_day'] if edit else 2 }}"></div>
+      <div><label class="lbl" for="f_notify">Notifikasi</label><select id="f_notify" name="notify" style="width:100%">
         <option value="telegram" {{ 'selected' if edit and edit['notify']=='telegram' }}>Telegram</option>
         <option value="silent" {{ 'selected' if edit and edit['notify']=='silent' }}>Diam saja</option></select></div>
-      <div><span class="lbl">Persetujuan</span><label style="font-size:14px"><input type="checkbox" name="requires_confirm" value="1" {{ 'checked' if edit and edit['requires_confirm'] }}> Minta konfirmasi dulu (aman utk pause)</label>
+      <div><label class="lbl" for="f_confirm">Persetujuan</label><label style="font-size:14px"><input type="checkbox" name="requires_confirm" value="1" {{ 'checked' if edit and edit['requires_confirm'] }}> Minta konfirmasi dulu (aman utk pause)</label>
       {% if edit and edit['dryrun_until'] %}<label style="font-size:13px;display:block;margin-top:6px"><input type="checkbox" name="akhiri_dryrun" value="1"> Akhiri dry-run lebih awal</label>{% endif %}</div>
       <div style="align-self:end"><button type="submit" class="btn-hijau">{{ '💾 Simpan perubahan' if edit else '＋ Simpan aturan (dry-run 24 jam)' }}</button>
       {% if edit %} <a href="/rules" class="btn btn-abu">batal</a>{% endif %}</div>
@@ -118,4 +121,11 @@
     <li>Kampanye tipe <b>AUTO (iklan produk otomatis)</b> tidak dapat ditulis — endpoint-nya akan dimatikan Shopee; gunakan rule "notifikasi saja" untuk migrasi.</li>
   </ul>
 </div>
+
+<script>
+(function(){
+  var sel=document.getElementById('scope_type');
+  if(sel&&sel.value&&sel.value!=='all'){sel.dispatchEvent(new Event('change'))}
+})();
+</script>
 {% endblock %}

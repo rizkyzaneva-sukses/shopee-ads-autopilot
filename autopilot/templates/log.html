@@ -2,7 +2,7 @@
 {% block title %}Log Keputusan{% endblock %}
 {% block content %}
 <h1>Log Keputusan</h1>
-<p class="sub">Jejak audit semua evaluasi & aksi autopilot — setiap keputusan bisa dilacak.</p>
+<p class="sub">Jejak audit semua evaluasi &amp; aksi autopilot — setiap keputusan bisa dilacak.</p>
 
 <div class="kartu">
   <div class="toolbar" style="margin:0">
@@ -19,8 +19,9 @@
       <button type="submit" class="btn-min">Filter</button>
     </form>
     <span style="flex:1"></span>
-    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Siklus Sekarang</button></form>
+    <form method="post" action="/kontrol/siklus"><button type="submit" class="btn-min btn-hijau">▶ Jalankan Siklus</button></form>
   </div>
+  <div class="table-wrap">
   <table>
     <tr><th>Waktu</th><th>Toko</th><th>Kampanye</th><th>Aturan</th><th>Kondisi / Metrik</th><th>Aksi</th><th>Mode</th><th>Status</th><th>Konfirmasi</th></tr>
     {% for d in decisions %}
@@ -30,7 +31,7 @@
       <td style="white-space:normal;max-width:170px">{{ (d.nama_kampanye or '—')[:32] }}</td>
       <td style="white-space:normal;max-width:140px">{{ d.nama_rule or '—' }}</td>
       <td style="white-space:normal;max-width:250px;color:#374151;font-size:12px">{{ d.kondisi[:90] }}</td>
-      <td style="white-space:normal;max-width:170px">{{ d.aksi }} {{ d.nilai_aksi }}{% if d.detail %}<br><span style="color:#6b7280;font-size:11px">{{ d.detail[:80] }}</span>{% endif %}</td>
+      <td style="white-space:normal;max-width:170px">{{ d.aksi }} {{ d.nilai_aksi }}{% if d.detail %}<br><span style="color:var(--abu);font-size:11px">{{ d.detail[:80] }}</span>{% endif %}</td>
       <td><span class="badge {{ 'b-merah' if d.mode=='live' else 'b-biru' }}">{{ d.mode }}</span></td>
       <td><span class="badge {{ 'b-hijau' if d.status=='executed' else 'b-kuning' if d.status=='pending' else 'b-abu' if d.status in ('dryrun','rejected','skipped') else 'b-merah' }}">{{ d.status }}</span></td>
       <td>{% if d.status=='pending' %}
@@ -40,9 +41,21 @@
           <button type="submit" class="btn-min btn-merah">✖</button></form>
       {% endif %}</td>
     </tr>
-    {% else %}<tr><td colspan="9" style="padding:28px;text-align:center;color:#6b7280">
+    {% else %}<tr><td colspan="9" style="padding:28px;text-align:center;color:var(--abu)">
       Belum ada log. Jalankan siklus evaluasi (tombol kanan atas).
     </td></tr>{% endfor %}
   </table>
+  </div>
+  {% if total_pages is defined and total_pages > 1 %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--garis)">
+    {% if page > 1 %}
+    <a href="/log?page={{ page-1 }}&amp;status={{ status }}&amp;store={{ store }}" class="btn btn-abu btn-min">← Sebelumnya</a>
+    {% endif %}
+    <span style="color:var(--abu);font-size:13px">Halaman {{ page }} dari {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="/log?page={{ page+1 }}&amp;status={{ status }}&amp;store={{ store }}" class="btn btn-abu btn-min">Selanjutnya →</a>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

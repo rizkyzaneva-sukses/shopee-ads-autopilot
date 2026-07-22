@@ -201,8 +201,18 @@ def catat(c: sqlite3.Connection, store_id: int, campaign_id: Optional[int],
                       aksi, nilai_aksi, status, detail)).lastrowid
 
 
+def count_decisions(c: sqlite3.Connection, store_id: int = 0,
+                    status: str = "") -> int:
+    w, p = ["1=1"], []
+    if store_id:
+        w.append("d.store_id=?"); p.append(store_id)
+    if status:
+        w.append("d.status=?"); p.append(status)
+    return c.execute(f"SELECT COUNT(*) AS n FROM decisions d WHERE {' AND '.join(w)}", p).fetchone()["n"]
+
+
 def list_decisions(c: sqlite3.Connection, limit: int = 100, store_id: int = 0,
-                   status: str = "") -> List[sqlite3.Row]:
+                   status: str = "", offset: int = 0) -> List[sqlite3.Row]:
     w, p = ["1=1"], []
     if store_id:
         w.append("d.store_id=?"); p.append(store_id)
@@ -214,7 +224,7 @@ def list_decisions(c: sqlite3.Connection, limit: int = 100, store_id: int = 0,
         LEFT JOIN stores s ON s.id=d.store_id
         LEFT JOIN campaigns k ON k.id=d.campaign_id
         LEFT JOIN rules r ON r.id=d.rule_id
-        WHERE {' AND '.join(w)} ORDER BY d.id DESC LIMIT ?""", p + [limit]).fetchall()
+        WHERE {' AND '.join(w)} ORDER BY d.id DESC LIMIT ? OFFSET ?""", p + [limit, offset]).fetchall()
 
 
 def pending_count(c: sqlite3.Connection) -> int:
