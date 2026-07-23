@@ -177,8 +177,32 @@ def kampanye_page(request: Request, store: int = 0, type_: str = "", status: str
 @app.get("/toko", response_class=HTMLResponse)
 def toko_page(request: Request):
     c = db.conn()
-    info = {s["id"]: db.get_setting(c, f"sync_note_{s['id']}", "-") for s in db.list_stores(c)}
-    return _render(request, "toko", toko=db.list_stores(c), sync_note=info)
+    stores = db.list_stores(c)
+    token_dir = os.environ.get("SHOPEE_TOKEN_DIR", "./tokens")
+    info = {}
+    tokens_status = {}
+    
+    for s in stores:
+        info[s["id"]] = db.get_setting(c, f"sync_note_{s['id']}", "-")
+        shop_ext = str(s.get("shop_id_ext") or "")
+        token_file = os.path.join(token_dir, f"shop_{shop_ext}.json")
+        if shop_ext.startswith("manual-"):
+            tokens_status[s["id"]] = {"type": "demo", "label": "DEMO (Simulasi)"}
+        elif os.path.exists(token_file):
+            try:
+                import json, time
+                with open(token_file) as f:
+                    tdata = json.load(f)
+                exp = tdata.get("obtained_at", 0) + tdata.get("expire_in", 14400)
+                exp_str = time.strftime('%d/%m %H:%M', time.localtime(exp))
+                tokens_status[s["id"]] = {"type": "connected", "label": f"✅ TERHUBUNG (Token s/d {exp_str})"}
+            except Exception:
+                tokens_status[s["id"]] = {"type": "connected", "label": "✅ TERHUBUNG (API OAuth)"}
+        else:
+            tokens_status[s["id"]] = {"type": "unauthorized", "label": "⚠️ BELUM LOGIN OAUTH"}
+
+    return _render(request, "toko", toko=stores, sync_note=info, tokens_status=tokens_status)
+
 
 
 @app.post("/toko/tambah")

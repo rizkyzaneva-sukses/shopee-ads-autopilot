@@ -4,6 +4,23 @@
 <h1>Toko</h1>
 <p class="sub">Semua cabang/toko dalam satu dashboard — atur plafon &amp; izin autopilot per toko.</p>
 
+<!-- Banner Penjelasan Mode & Penyimpanan -->
+<div class="kartu" style="border-left:5px solid {% if bagan.mode == 'live' %}#dc2626{% else %}#2563eb{% endif %}">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div>
+      <b style="font-size:15px">Status Mode Sistem: </b>
+      <span class="badge {{ 'b-merah' if bagan.mode == 'live' else 'b-biru' }}" style="font-size:13px;padding:4px 10px">
+        {{ '🔴 MODE LIVE (Aksi Nyata ke Shopee API)' if bagan.mode == 'live' else '🛡️ MODE DEMO (Simulasi Database Lokal)' }}
+      </span>
+    </div>
+    <span style="flex:1"></span>
+    <a href="/settings" class="btn-min btn-abu" style="text-decoration:none">⚙️ Ubah Mode di Settings</a>
+  </div>
+  <p style="color:var(--abu);font-size:13px;margin:8px 0 0">
+    💾 <b>Penyimpanan Toko:</b> Setiap toko yang berhasil di-login via OAuth akan tersimpan permanen di database SQLite (<code>autopilot.db</code>) dan token resminya disimpan di folder <code>./tokens/</code> dengan fitur Auto-Refresh otomatis.
+  </p>
+</div>
+
 <div class="kartu">
   <div class="toolbar" style="margin:0"><b>Toko terdaftar: {{ toko|length }}</b>
     <span style="flex:1"></span>
@@ -13,9 +30,10 @@
   <table>
     <tr><th>Nama</th><th>Shop ID</th><th class="num">Kampanye</th><th class="num">Budget aktif/hari</th>
         <th class="num">Spend 7h</th><th class="num">GMV 7h</th><th class="num">ROAS 7h</th>
-        <th>Autopilot</th><th>Koneksi API</th><th>Sinkron terakhir</th><th>Plafon &amp; izin</th></tr>
+        <th>Autopilot</th><th>Status Koneksi API</th><th>Sinkron terakhir</th><th>Plafon &amp; izin</th></tr>
     {% for t in toko %}
     {% set roas = (t['gmv_7d'] / t['spend_7d']) if t['spend_7d'] else 0 %}
+    {% set st = tokens_status[t['id']] if tokens_status and t['id'] in tokens_status else {'type':'demo','label':'DEMO'} %}
     <tr>
       <td><b>{{ t['nama'] }}</b></td>
       <td style="font-size:12px;color:var(--abu)">{{ t['shop_id_ext'] }}</td>
@@ -26,10 +44,14 @@
       <td class="num {{ 'roas-baik' if roas>=2 else 'roas-cukup' if roas>=1.5 else 'roas-buruk' }}">{{ '%.2f'|format(roas) }}×</td>
       <td><span class="badge {{ 'b-hijau' if t['autopilot_on'] else 'b-abu' }}">{{ 'ON' if t['autopilot_on'] else 'OFF' }}</span></td>
       <td>
-        {% if t['shop_id_ext'] and not t['shop_id_ext'].startswith('manual-') %}
-        <a href="/auth/shopee/connect?nama={{ t['nama']|urlencode }}" class="badge b-biru" style="font-size:11px;text-decoration:none">🔗 Sambung ulang</a>
+        {% if st.type == 'connected' %}
+        <span class="badge b-hijau" style="font-size:11px" title="Token tersimpan & auto-refresh aktif">{{ st.label }}</span>
+        <a href="/auth/shopee/connect?nama={{ t['nama']|urlencode }}" class="badge b-biru" style="font-size:10px;text-decoration:none;margin-left:4px">🔄 Re-auth</a>
+        {% elif st.type == 'unauthorized' %}
+        <span class="badge b-kuning" style="font-size:11px">{{ st.label }}</span>
+        <a href="/auth/shopee/connect?nama={{ t['nama']|urlencode }}" class="badge b-merah" style="font-size:11px;text-decoration:none;margin-left:4px">🔐 Login Sekarang</a>
         {% else %}
-        <span class="badge b-abu" style="font-size:11px" title="Toko demo — hubungkan lewat tombol di bawah">DEMO</span>
+        <span class="badge b-abu" style="font-size:11px" title="Toko demo simulasi">🔵 DEMO SIMULASI</span>
         {% endif %}
       </td>
       <td style="font-size:12px;white-space:normal;max-width:200px">{{ t['last_sync_at'] or '—' }}<br>
@@ -44,11 +66,12 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="11" style="padding:28px;text-align:center;color:var(--abu)">Belum ada toko — tambah dengan form di bawah.</td></tr>
+    <tr><td colspan="11" style="padding:28px;text-align:center;color:var(--abu)">Belum ada toko — tambah dengan form di bawah atau login via Shopee OAuth.</td></tr>
     {% endfor %}
   </table>
   </div>
 </div>
+
 
 <div class="grid g2">
   <div class="kartu">
