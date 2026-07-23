@@ -184,8 +184,9 @@ def toko_page(request: Request):
     
     for s in stores:
         info[s["id"]] = db.get_setting(c, f"sync_note_{s['id']}", "-")
-        shop_ext = str(s.get("shop_id_ext") or "")
+        shop_ext = str(s["shop_id_ext"] or "")
         token_file = os.path.join(token_dir, f"shop_{shop_ext}.json")
+
         if shop_ext.startswith("manual-"):
             tokens_status[s["id"]] = {"type": "demo", "label": "DEMO (Simulasi)"}
         elif os.path.exists(token_file):
