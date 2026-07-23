@@ -305,7 +305,10 @@ def auth_shopee_callback(request: Request, code: str = "", shop_id: str = "", st
         expires_str = time.strftime('%Y-%m-%d %H:%M', time.localtime(token.expires_at))
         return _goto("/toko", f"✅ Toko '{nama}' (shop_id {shop_id}) berhasil dihubungkan! Token berlaku s/d {expires_str} (refresh otomatis).")
     except Exception as exc:
+        import logging
+        logging.exception("Gagal menukar token OAuth Shopee")
         return _goto("/toko", f"❌ Gagal menukar token: {exc}")
+
 
 
 # ================================================================ KONTROL

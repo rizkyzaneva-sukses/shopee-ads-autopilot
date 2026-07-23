@@ -40,14 +40,21 @@ def get_access_token(client: ShopeeClient, code: str, shop_id: Optional[int] = N
     """Tukar `code` dari redirect OAuth menjadi access+refresh token."""
     body = {"code": code, "partner_id": client.config.partner_id}
     if shop_id:
-        body["shop_id"] = shop_id
+        body["shop_id"] = int(shop_id)
     elif main_account_id:
-        body["main_account_id"] = main_account_id
+        body["main_account_id"] = int(main_account_id)
     else:
         raise ValueError("Isi shop_id atau main_account_id")
 
     data = client.partner_call(TOKEN_GET_PATH, method="POST", json_body=body)
     r = data.get("response") or {}
+    
+    if "access_token" not in r:
+        err_code = data.get("error") or "token_error"
+        err_msg = data.get("message") or f"Respon Shopee API tidak berisi access_token. Respon lengkap: {data}"
+        req_id = data.get("request_id") or ""
+        raise RuntimeError(f"[{err_code}] {err_msg} (request_id={req_id})")
+
     token = Token(
         access_token=r["access_token"],
         refresh_token=r["refresh_token"],
@@ -56,6 +63,7 @@ def get_access_token(client: ShopeeClient, code: str, shop_id: Optional[int] = N
         shop_id=shop_id or r.get("shop_id_list", [None])[0],
     )
     return token
+
 
 
 def refresh_access_token(client: ShopeeClient, shop_id: int) -> Token:
