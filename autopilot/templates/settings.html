@@ -2,7 +2,74 @@
 {% block title %}Settings{% endblock %}
 {% block content %}
 <h1>Settings</h1>
-<p class="sub">Mode operasi, mesin evaluasi, dan notifikasi Telegram.</p>
+<p class="sub">Mode operasi, kredensial Shopee API, mesin evaluasi, dan notifikasi Telegram.</p>
+
+<!-- ===== KREDENSIAL SHOPEE OPEN PLATFORM ===== -->
+<div class="kartu" style="border:2px solid {% if env_ready %}#16a34a{% else %}#e5700a{% endif %}">
+  <b>🔑 Kredensial Shopee Open Platform</b>
+  {% if env_ready %}
+  <div class="badge b-hijau" style="font-size:12px;padding:6px 12px;margin:10px 0 6px">
+    ✓ Partner ID & Key terisi — {{ 'produksi' if 'shopeemobile' in base_url else 'sandbox/test' }}
+    &nbsp;|&nbsp; Redirect URL: {{ shopee_redirect_url or '(belum diset)' }}
+  </div>
+  {% else %}
+  <div class="badge b-merah" style="font-size:12px;padding:6px 12px;margin:10px 0 6px">
+    ✗ SHOPEE_PARTNER_ID / KEY belum terisi — mode LIVE tidak bisa berjalan
+  </div>
+  {% endif %}
+  <form method="post" action="/settings/kredensial" style="margin-top:12px">
+    <div class="grid g2" style="gap:10px">
+      <div>
+        <label class="lbl" for="sp_partner_id">Partner ID <span style="color:#e5700a">*</span></label>
+        <input id="sp_partner_id" name="shopee_partner_id" type="text" value="{{ shopee_partner_id }}"
+               placeholder="contoh: 1234567" style="width:100%" autocomplete="off">
+      </div>
+      <div>
+        <label class="lbl" for="sp_partner_key">Partner Key <span style="color:#e5700a">*</span></label>
+        <input id="sp_partner_key" name="shopee_partner_key" type="password" value="{{ shopee_partner_key }}"
+               placeholder="Partner key dari Open Platform" style="width:100%" autocomplete="off">
+      </div>
+      <div>
+        <label class="lbl" for="sp_redirect_url">Redirect URL (didaftarkan di App Console)</label>
+        <input id="sp_redirect_url" name="shopee_redirect_url" type="url" value="{{ shopee_redirect_url or 'http://127.0.0.1:8765/auth/shopee/callback' }}"
+               placeholder="http://127.0.0.1:8765/auth/shopee/callback" style="width:100%">
+      </div>
+      <div>
+        <label class="lbl" for="sp_base_url">Base URL API</label>
+        <select id="sp_base_url" name="shopee_base_url" style="width:100%">
+          <option value="https://partner.shopeemobile.com" {{ 'selected' if 'shopeemobile' in (shopee_base_url_env or '') }}>Produksi — partner.shopeemobile.com</option>
+          <option value="https://partner.test-stable.shopee.cn" {{ 'selected' if 'test-stable' in (shopee_base_url_env or '') }}>Sandbox — partner.test-stable.shopee.cn</option>
+        </select>
+      </div>
+    </div>
+    <p style="color:var(--abu);font-size:12px;margin:8px 0 12px">
+      Dapatkan Partner ID & Key dari <a href="https://open.shopee.com" target="_blank" style="color:var(--aksen)">open.shopee.com</a> → App List → app Anda.
+      Scope <b>Ads (modul 117)</b> perlu dimintakan ke Shopee Partner Support.
+    </p>
+    <button type="submit" class="btn-hijau">💾 Simpan Kredensial ke .env</button>
+  </form>
+  {% if env_ready %}
+  <hr style="border:0;border-top:1px solid var(--garis);margin:16px 0">
+  <b>Hubungkan Toko Shopee Nyata</b>
+  <p style="color:var(--abu);font-size:13px;margin:6px 0 10px">
+    Klik tombol di bawah untuk login sebagai pemilik toko di halaman Shopee resmi.
+    Setelah Anda menyetujui, toko akan langsung muncul di dashboard.
+  </p>
+  <form method="get" action="/auth/shopee/connect" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+    <div>
+      <label class="lbl" for="conn_nama">Nama toko (opsional, untuk label di dashboard)</label>
+      <input id="conn_nama" name="nama" type="text" placeholder="mis. Toko Utama" style="width:240px">
+    </div>
+    <button type="submit" class="btn-merah" style="min-width:200px">
+      🔐 Hubungkan Toko Shopee (Login)
+    </button>
+  </form>
+  <p style="color:var(--abu);font-size:12px;margin-top:8px">
+    Anda akan diarahkan ke halaman login Seller Shopee. Setelah menyetujui, token disimpan otomatis.
+    Ulangi untuk setiap cabang/toko. Token berlaku ±4 jam dan di-refresh otomatis.
+  </p>
+  {% endif %}
+</div>
 
 <div class="grid g2">
   <div class="kartu">
@@ -24,19 +91,11 @@
   </div>
 
   <div class="kartu">
-    <b>Mesin evaluasi &amp; koneksi</b><br><br>
+    <b>Mesin evaluasi</b><br><br>
     <form method="post" action="/settings">
       <label class="lbl" for="interval_menit">Interval siklus otomatis (menit)</label>
       <input id="interval_menit" name="interval_menit" type="number" min="5" max="720" value="{{ s['interval_menit'] or 60 }}" style="width:120px">
       <span style="color:var(--abu);font-size:12px">— engine berjalan di background tiap interval ini (lihat run.py)</span>
-      <hr style="border:0;border-top:1px solid var(--garis);margin:14px 0">
-      <label class="lbl">Status kredensial API</label>
-      {% if env_ready %}
-      <div class="badge b-hijau" style="font-size:12px;padding:6px 12px">✓ SHOPEE_PARTNER_ID/KEY terisi — {{ 'production' if 'shopeemobile' in base_url else 'sandbox/test' }}</div>
-      {% else %}
-      <div class="badge b-merah" style="font-size:12px;padding:6px 12px">✗ SHOPEE_PARTNER_ID/KEY belum di-set</div>
-      <p style="color:var(--abu);font-size:13px">Salin <code>.env.example</code> → <code>.env</code>, isi kredensial dari Shopee Open Platform, lalu restart. Tanpa ini, mode LIVE tidak bisa berjalan (mode DEMO tetap jalan penuh).</p>
-      {% endif %}
       <hr style="border:0;border-top:1px solid var(--garis);margin:14px 0">
       <label class="lbl" for="tg_token">Telegram Bot Token</label>
       <input id="tg_token" name="tg_token" type="password" value="{{ s['tg_token'] }}" placeholder="123456:AA..." style="width:100%">

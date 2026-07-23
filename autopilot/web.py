@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from . import db, engine, notify
+from .envfile import update_env
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("AUTOPILOT_DB", os.path.join(os.path.dirname(BASE), "autopilot.db"))
@@ -29,6 +30,8 @@ def _idr(v) -> str:
 templates.env.filters["idr"] = _idr
 templates.env.filters["pct"] = lambda v: f"{float(v or 0):.1f}%"
 templates.env.filters["g"] = lambda v: f"{float(v or 0):g}"
+templates.env.filters["urlencode"] = lambda v: quote(str(v or ""), safe="")
+
 
 
 @app.on_event("startup")
@@ -196,6 +199,91 @@ async def toko_atur(store_id: int, plafon_harian: str = Form("0"),
     return _goto("/toko", "Pengaturan toko disimpan")
 
 
+# ================================================================ OAUTH SHOPEE
+@app.get("/auth/shopee/connect", response_class=HTMLResponse)
+def auth_shopee_connect(request: Request, nama: str = ""):
+    """Memulai alur OAuth Shopee — redirect ke halaman login seller Shopee."""
+    partner_id = os.environ.get("SHOPEE_PARTNER_ID", "").strip()
+    partner_key = os.environ.get("SHOPEE_PARTNER_KEY", "").strip()
+    if not partner_id or not partner_key:
+        return _goto("/settings", "⚠️ Isi SHOPEE_PARTNER_ID & SHOPEE_PARTNER_KEY di Settings terlebih dahulu")
+
+    # Simpan nama toko sementara di session via query param (aman utk single-user)
+    redirect_url = os.environ.get("SHOPEE_REDIRECT_URL", "").strip()
+    if not redirect_url:
+        redirect_url = str(request.base_url).rstrip("/") + "/auth/shopee/callback"
+
+    try:
+        from shopee_connector.config import Config
+        from shopee_connector.client import ShopeeClient
+        from shopee_connector.token_store import JsonFileTokenStore
+        from shopee_connector import auth as shopee_auth
+
+        cfg = Config(
+            partner_id=int(partner_id),
+            partner_key=partner_key,
+            base_url=os.environ.get("SHOPEE_BASE_URL", "https://partner.shopeemobile.com").rstrip("/"),
+            redirect_url=redirect_url,
+            token_dir=os.environ.get("SHOPEE_TOKEN_DIR", "./tokens"),
+        )
+        auth_url = shopee_auth.build_authorization_url(cfg)
+        # Simpan nama toko sementara di state (tempelkan ke redirect URL via query)
+        if nama:
+            auth_url += f"&state={quote(nama, safe='')}"
+        return RedirectResponse(auth_url)
+    except Exception as exc:
+        return _goto("/toko", f"Gagal membuat URL otorisasi: {exc}")
+
+
+@app.get("/auth/shopee/callback", response_class=HTMLResponse)
+def auth_shopee_callback(request: Request, code: str = "", shop_id: str = "", state: str = "", error: str = ""):
+    """Callback OAuth dari Shopee — tukar code → token → daftarkan toko."""
+    if error:
+        return _goto("/toko", f"❌ Otorisasi dibatalkan atau gagal: {error}")
+    if not code or not shop_id:
+        return _goto("/toko", "❌ Parameter code/shop_id tidak lengkap dari Shopee callback")
+
+    partner_id = os.environ.get("SHOPEE_PARTNER_ID", "").strip()
+    partner_key = os.environ.get("SHOPEE_PARTNER_KEY", "").strip()
+    if not partner_id or not partner_key:
+        return _goto("/settings", "⚠️ Kredensial API belum di-set — isi di Settings")
+
+    redirect_url = os.environ.get("SHOPEE_REDIRECT_URL", "").strip()
+    if not redirect_url:
+        redirect_url = str(request.base_url).rstrip("/") + "/auth/shopee/callback"
+
+    try:
+        from shopee_connector.config import Config
+        from shopee_connector.client import ShopeeClient
+        from shopee_connector.token_store import JsonFileTokenStore
+        from shopee_connector import auth as shopee_auth
+        import time
+
+        cfg = Config(
+            partner_id=int(partner_id),
+            partner_key=partner_key,
+            base_url=os.environ.get("SHOPEE_BASE_URL", "https://partner.shopeemobile.com").rstrip("/"),
+            redirect_url=redirect_url,
+            token_dir=os.environ.get("SHOPEE_TOKEN_DIR", "./tokens"),
+        )
+        token_store = JsonFileTokenStore(cfg.token_dir)
+        client = ShopeeClient(cfg, token_store)
+
+        token = shopee_auth.get_access_token(client, code, shop_id=int(shop_id))
+        token_store.save(int(shop_id), token)
+
+        # Daftarkan / perbarui nama toko di database Autopilot
+        nama = state.strip() or f"Toko {shop_id}"
+        c = db.conn()
+        db.upsert_store(c, str(shop_id), nama)
+        c.commit()
+
+        expires_str = time.strftime('%Y-%m-%d %H:%M', time.localtime(token.expires_at))
+        return _goto("/toko", f"✅ Toko '{nama}' (shop_id {shop_id}) berhasil dihubungkan! Token berlaku s/d {expires_str} (refresh otomatis).")
+    except Exception as exc:
+        return _goto("/toko", f"❌ Gagal menukar token: {exc}")
+
+
 # ================================================================ KONTROL
 @app.post("/kontrol/siklus")
 def kontrol_siklus():
@@ -248,7 +336,11 @@ def settings_page(request: Request):
                    mode=db.mode(c),
                    env_ready=bool(os.environ.get("SHOPEE_PARTNER_ID") and
                                   os.environ.get("SHOPEE_PARTNER_KEY")),
-                   base_url=os.environ.get("SHOPEE_BASE_URL", "https://partner.shopeemobile.com"))
+                   base_url=os.environ.get("SHOPEE_BASE_URL", "https://partner.shopeemobile.com"),
+                   shopee_partner_id=os.environ.get("SHOPEE_PARTNER_ID", ""),
+                   shopee_partner_key=os.environ.get("SHOPEE_PARTNER_KEY", ""),
+                   shopee_redirect_url=os.environ.get("SHOPEE_REDIRECT_URL", ""),
+                   shopee_base_url_env=os.environ.get("SHOPEE_BASE_URL", "https://partner.shopeemobile.com"))
 
 
 @app.post("/settings")
@@ -260,6 +352,26 @@ async def settings_simpan(tg_token: str = Form(""), tg_chat_id: str = Form(""),
     db.set_setting(c, "interval_menit", interval_menit.strip() or "60")
     c.commit()
     return _goto("/settings", "Settings tersimpan")
+
+
+@app.post("/settings/kredensial")
+async def settings_kredensial_simpan(
+    shopee_partner_id: str = Form(""),
+    shopee_partner_key: str = Form(""),
+    shopee_redirect_url: str = Form(""),
+    shopee_base_url: str = Form("https://partner.shopeemobile.com"),
+):
+    """Simpan kredensial Shopee Open Platform ke file .env dan os.environ."""
+    updates = {
+        "SHOPEE_PARTNER_ID": shopee_partner_id.strip(),
+        "SHOPEE_PARTNER_KEY": shopee_partner_key.strip(),
+        "SHOPEE_REDIRECT_URL": shopee_redirect_url.strip(),
+        "SHOPEE_BASE_URL": shopee_base_url.strip() or "https://partner.shopeemobile.com",
+    }
+    update_env({k: v for k, v in updates.items() if v})
+    ready = bool(updates["SHOPEE_PARTNER_ID"] and updates["SHOPEE_PARTNER_KEY"])
+    msg = "✅ Kredensial Shopee tersimpan ke .env — siap untuk hubungkan toko" if ready else "Kredensial disimpan (Partner ID/KEY masih kosong)"
+    return _goto("/settings", msg)
 
 
 @app.post("/settings/tes-telegram")

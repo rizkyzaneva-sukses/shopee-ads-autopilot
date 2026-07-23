@@ -13,7 +13,7 @@
   <table>
     <tr><th>Nama</th><th>Shop ID</th><th class="num">Kampanye</th><th class="num">Budget aktif/hari</th>
         <th class="num">Spend 7h</th><th class="num">GMV 7h</th><th class="num">ROAS 7h</th>
-        <th>Autopilot</th><th>Sinkron terakhir</th><th>Plafon &amp; izin</th></tr>
+        <th>Autopilot</th><th>Koneksi API</th><th>Sinkron terakhir</th><th>Plafon &amp; izin</th></tr>
     {% for t in toko %}
     {% set roas = (t['gmv_7d'] / t['spend_7d']) if t['spend_7d'] else 0 %}
     <tr>
@@ -25,6 +25,13 @@
       <td class="num">{{ t['gmv_7d']|idr }}</td>
       <td class="num {{ 'roas-baik' if roas>=2 else 'roas-cukup' if roas>=1.5 else 'roas-buruk' }}">{{ '%.2f'|format(roas) }}×</td>
       <td><span class="badge {{ 'b-hijau' if t['autopilot_on'] else 'b-abu' }}">{{ 'ON' if t['autopilot_on'] else 'OFF' }}</span></td>
+      <td>
+        {% if t['shop_id_ext'] and not t['shop_id_ext'].startswith('manual-') %}
+        <a href="/auth/shopee/connect?nama={{ t['nama']|urlencode }}" class="badge b-biru" style="font-size:11px;text-decoration:none">🔗 Sambung ulang</a>
+        {% else %}
+        <span class="badge b-abu" style="font-size:11px" title="Toko demo — hubungkan lewat tombol di bawah">DEMO</span>
+        {% endif %}
+      </td>
       <td style="font-size:12px;white-space:normal;max-width:200px">{{ t['last_sync_at'] or '—' }}<br>
         <span style="color:#9ca3af">{{ sync_note[t['id']] if t['id'] in sync_note else '' }}</span></td>
       <td>
@@ -37,7 +44,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="10" style="padding:28px;text-align:center;color:var(--abu)">Belum ada toko — tambah dengan form di bawah.</td></tr>
+    <tr><td colspan="11" style="padding:28px;text-align:center;color:var(--abu)">Belum ada toko — tambah dengan form di bawah.</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -52,19 +59,31 @@
       <button type="submit" class="btn-min btn-hijau">Tambah</button>
     </form>
     <p style="color:var(--abu);font-size:13px">Untuk mode <b>DEMO</b> Anda boleh mengosongkan Shop ID — sistem membuat id internal.
-    Untuk mode <b>LIVE</b>, toko harus diotorisasi lewat OAuth (panduan di kanan).</p>
+    Untuk mode <b>LIVE</b>, toko harus diotorisasi lewat OAuth (gunakan tombol di kanan).</p>
   </div>
-  <div class="kartu">
-    <b>🔐 Menghubungkan toko nyata (OAuth resmi Shopee)</b>
-    <ol style="margin-bottom:0;color:#374151;line-height:1.9">
-      <li>Isi <code>SHOPEE_PARTNER_ID</code> &amp; <code>SHOPEE_PARTNER_KEY</code> di file <code>.env</code> (lihat <code>.env.example</code>), restart server.</li>
-      <li>Jalankan <code>python scripts/authorize_shop.py --nama "Cabang Bandung"</code> → buka URL yang tercetak, login sebagai <b>pemilik toko</b>, klik Setujui.</li>
-      <li>Salin URL hasil redirect → <code>python scripts/authorize_shop.py --nama "Cabang Bandung" --pasted-url "URL_HASIL"</code>.</li>
-      <li>Ulangi untuk setiap cabang (&gt;5 toko didukung). Token di-refresh otomatis (berlaku ±4 jam).</li>
-      <li>Scope <b>Ads (modul 117)</b> perlu diaktifkan oleh Shopee Partner Support untuk akun developer Anda.</li>
-    </ol>
+  <div class="kartu" style="border:2px solid var(--aksen)">
+    <b>🔐 Hubungkan Toko Shopee Nyata (Login OAuth Resmi)</b>
+    <p style="color:var(--abu);font-size:13px;margin:8px 0 12px">
+      Klik tombol di bawah — Anda akan diarahkan ke halaman login resmi Shopee Seller.
+      Setelah login dan menyetujui, toko otomatis terdaftar di dashboard ini.
+      Token disimpan lokal dan di-refresh otomatis setiap ±4 jam.
+    </p>
+    <form method="get" action="/auth/shopee/connect" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <label class="lbl" for="oauth_nama">Nama toko (label di dashboard)</label>
+        <input id="oauth_nama" name="nama" type="text" placeholder="mis. Toko Utama / Cabang Surabaya" style="width:250px">
+      </div>
+      <button type="submit" class="btn-merah" id="btn-hubungkan-shopee" style="min-width:220px;font-size:14px;padding:10px 18px">
+        🔐 Login &amp; Hubungkan Toko Shopee
+      </button>
+    </form>
+    <p style="color:var(--abu);font-size:12px">Ulangi untuk setiap cabang (&gt;5 toko didukung). Pastikan <b>Partner ID &amp; Key</b> sudah diisi di
+      <a href="/settings" style="color:var(--aksen)">Settings</a> sebelum menghubungkan.
+      Scope <b>Ads (modul 117)</b> perlu diaktifkan oleh Shopee Partner Support.
+    </p>
   </div>
 </div>
 
 <div class="note">🛡️ <b>Plafon harian</b> adalah rem terakhir: total budget kampanye ongoing sebuah toko tidak akan pernah dinaikkan autopilot melebihi plafon ini — walau aturan menyuruh naik. Cocok untuk mengontrol total bon iklan per cabang.</div>
 {% endblock %}
+
