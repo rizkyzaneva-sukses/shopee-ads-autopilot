@@ -47,22 +47,28 @@ def get_access_token(client: ShopeeClient, code: str, shop_id: Optional[int] = N
         raise ValueError("Isi shop_id atau main_account_id")
 
     data = client.partner_call(TOKEN_GET_PATH, method="POST", json_body=body)
-    r = data.get("response") or {}
-    
+    # Shopee API v2 token endpoint dapat mengembalikan kunci di root atau di dalam 'response'
+    r = data.get("response") if (isinstance(data.get("response"), dict) and "access_token" in data.get("response")) else data
+
     if "access_token" not in r:
         err_code = data.get("error") or "token_error"
         err_msg = data.get("message") or f"Respon Shopee API tidak berisi access_token. Respon lengkap: {data}"
         req_id = data.get("request_id") or ""
         raise RuntimeError(f"[{err_code}] {err_msg} (request_id={req_id})")
 
+    shop_id_found = shop_id
+    if not shop_id_found and r.get("shop_id_list"):
+        shop_id_found = r["shop_id_list"][0]
+
     token = Token(
         access_token=r["access_token"],
         refresh_token=r["refresh_token"],
         expire_in=int(r.get("expire_in", DEFAULT_EXPIRE_IN)),
         obtained_at=int(time.time()),
-        shop_id=shop_id or r.get("shop_id_list", [None])[0],
+        shop_id=shop_id_found,
     )
     return token
+
 
 
 
@@ -79,7 +85,12 @@ def refresh_access_token(client: ShopeeClient, shop_id: int) -> Token:
         "shop_id": shop_id,
     }
     data = client.partner_call(REFRESH_TOKEN_PATH, method="POST", json_body=body)
-    r = data.get("response") or {}
+    r = data.get("response") if (isinstance(data.get("response"), dict) and "access_token" in data.get("response")) else data
+    if "access_token" not in r:
+        err_code = data.get("error") or "refresh_error"
+        err_msg = data.get("message") or f"Respon refresh token Shopee API tidak berisi access_token: {data}"
+        raise RuntimeError(f"[{err_code}] {err_msg}")
+
     return Token(
         access_token=r["access_token"],
         refresh_token=r.get("refresh_token") or existing.refresh_token,
@@ -87,3 +98,4 @@ def refresh_access_token(client: ShopeeClient, shop_id: int) -> Token:
         obtained_at=int(time.time()),
         shop_id=shop_id,
     )
+
